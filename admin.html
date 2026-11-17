@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - ระบบบริหารจัดการนักศึกษาฝึกงาน</title>
+  <script src="api-config.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    .hidden { display: none !important; }
+    body {
+      font-family: 'Kanit', Arial, sans-serif;
+      background: 
+        radial-gradient(circle at 10% 5%, rgba(79, 70, 229, 0.12), transparent 30%),
+        radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.12), transparent 30%),
+        linear-gradient(135deg, #f0f7ff 0%, #f8fafc 50%, #eff6ff 100%);
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 14px 40px -15px rgba(30, 64, 175, 0.12);
+    }
+
+    .card-all-active {
+      border: 2px solid #4f46e5 !important;
+      background: #eef2ff !important;
+      box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.25) !important;
+      transform: translateY(-2px);
+    }
+    .card-new-active {
+      border: 2px solid #0284c7 !important;
+      background: #f0f9ff !important;
+      box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.25) !important;
+      transform: translateY(-2px);
+    }
+    .card-pending-active {
+      border: 2px solid #d97706 !important;
+      background: #fffbeb !important;
+      box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.25) !important;
+      transform: translateY(-2px);
+    }
+    .card-reviewed-active {
+      border: 2px solid #059669 !important;
+      background: #f0fdf4 !important;
+      box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.25) !important;
+      transform: translateY(-2px);
+    }
+    .card-rejected-active {
+      border: 2px solid #e11d48 !important;
+      background: #fff1f2 !important;
+      box-shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.25) !important;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="text-gray-800 pb-16">
+
+  <div id="adminApp" class="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+    
+    <!-- Header -->
+    <header class="glass rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-2xl text-white flex items-center justify-center shadow-lg flex-shrink-0" style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);">
+          <i class="fa-solid fa-user-shield text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h1 class="text-2xl md:text-3xl font-extrabold" style="color: #1e1b4b;">ระบบบริหารจัดการนักศึกษาฝึกงาน</h1>
+            <span class="px-3 py-1 rounded-full text-xs font-bold shadow-sm" style="background-color: #e0e7ff; color: #3730a3;" id="adminRoleBadge">ผู้ดูแลระบบ</span>
+          </div>
+          <p class="text-sm font-medium" style="color: #64748b;">กลุ่มมิตรผล · Internship Administration</p>
+        </div>
+      </div>
+      <button onclick="adminLogout()" class="px-5 py-2.5 rounded-2xl border-2 font-bold transition flex items-center gap-2 shadow-sm" style="border-color: #fecdd3; color: #e11d48; background-color: #fff;">
+        <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+      </button>
+    </header>
+
+    <!-- Admin Profile Section -->
+    <section class="glass rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-md flex-shrink-0" style="background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);">
+          <i class="fa-solid fa-id-badge text-2xl"></i>
+        </div>
+        <div>
+          <div class="text-xs font-semibold" style="color: #94a3b8;">ผู้ดูแลระบบปัจจุบัน</div>
+          <div id="adminName" class="font-extrabold text-lg" style="color: #0f172a;">-</div>
+          <div id="adminPosition" class="text-xs sm:text-sm font-semibold" style="color: #4338ca;">-</div>
+        </div>
+      </div>
+
+      <button onclick="openQuotaModal()" class="px-5 py-3 rounded-2xl font-bold text-white transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 hover:scale-105 active:scale-95 self-start sm:self-auto" style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);">
+        <i class="fa-solid fa-chart-pie text-lg animate-pulse"></i>
+        <span>ภาพรวมโควต้า & จัดการยอดอนุมัติ</span>
+      </button>
+    </section>
+
+    <!-- 5 Summary Cards -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+      <div id="cardAll" onclick="selectCardFilter('all')" class="glass rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 cursor-pointer transition duration-200 card-all-active">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm" style="background-color: #e0e7ff; color: #4338ca;">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold" style="color: #312e81;">ผู้สมัครทั้งหมด</p>
+          <h3 class="text-2xl sm:text-3xl font-black" style="color: #4338ca;" id="countAll">0</h3>
+        </div>
+      </div>
+
+      <div id="cardNew" onclick="selectCardFilter('unassigned')" class="glass rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 cursor-pointer transition duration-200">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm" style="background-color: #e0f2fe; color: #0284c7;">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold" style="color: #075985;">นศ.ฝึกงานใหม่</p>
+          <h3 class="text-2xl sm:text-3xl font-black" style="color: #0284c7;" id="countNew">0</h3>
+        </div>
+      </div>
+
+      <div id="cardPending" onclick="selectCardFilter('pending')" class="glass rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 cursor-pointer transition duration-200">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm" style="background-color: #fef3c7; color: #d97706;">
+          <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold" style="color: #78350f;">รอการพิจารณา</p>
+          <h3 class="text-2xl sm:text-3xl font-black" style="color: #d97706;" id="countPending">0</h3>
+        </div>
+      </div>
+
+      <div id="cardReviewed" onclick="selectCardFilter('reviewed')" class="glass rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 cursor-pointer transition duration-200">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm" style="background-color: #dcfce7; color: #059669;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold" style="color: #064e3b;">พิจารณาแล้ว</p>
+          <h3 class="text-2xl sm:text-3xl font-black" style="color: #059669;" id="countReviewed">0</h3>
+        </div>
+      </div>
+
+      <div id="cardRejected" onclick="selectCardFilter('rejected')" class="glass rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 cursor-pointer transition duration-200 col-span-2 sm:col-span-1">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm" style="background-color: #ffe4e6; color: #e11d48;">
+          <i class="fa-solid fa-circle-xmark"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold" style="color: #881337;">ไม่อนุมัติ</p>
+          <h3 class="text-2xl sm:text-3xl font-black" style="color: #e11d48;" id="countRejected">0</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table Container & Filters -->
+    <section class="glass rounded-3xl p-6 lg:p-8 space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5" style="border-color: #e2e8f0;">
+        <div>
+          <h2 class="text-xl font-black" style="color: #1e1b4b;" id="tableTitle">รายการผู้สมัครทั้งหมด</h2>
+          <p class="text-xs mt-1" style="color: #64748b;">จัดการสิทธิ์การอนุมัติ แก้ไขผู้พิจารณา และยกเลิกสถานะการอนุมัติ (คลิกที่รายการเพื่อดูรายละเอียด)</p>
+        </div>
+        <button onclick="loadAdminData()" class="px-4 py-2.5 rounded-2xl font-bold transition flex items-center gap-2 text-sm shadow-sm" style="background-color: #e0e7ff; color: #3730a3;">
+          <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div>
+          <label class="block text-xs font-semibold mb-1" style="color: #475569;">ค้นหาชื่อ/สถาบัน/สาขา</label>
+          <input type="text" id="adminSearchInput" oninput="resetPageAndFilter()" placeholder="พิมพ์คำค้นหา..." class="w-full p-2.5 rounded-xl border border-gray-200 bg-white outline-none text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1" style="color: #475569;">สถานที่</label>
+          <select id="adminLocationFilter" onchange="resetPageAndFilter()" class="w-full p-2.5 rounded-xl border border-gray-200 bg-white outline-none text-xs focus:ring-2 focus:ring-indigo-500">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1" style="color: #475569;">หน่วยงานที่ขอฝึกงาน</label>
+          <select id="adminUnitFilter" onchange="resetPageAndFilter()" class="w-full p-2.5 rounded-xl border border-gray-200 bg-white outline-none text-xs focus:ring-2 focus:ring-indigo-500">
+            <option value="">ทั้งหมด</option>
+            <option value="ด้านโรงงาน">ด้านโรงงาน</option>
+            <option value="ด้านอ้อย">ด้านอ้อย</option>
+            <option value="ด้านโลจิสติกส์">ด้านโลจิสติกส์</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1" style="color: #475569;">สถานะการอนุมัติ</label>
+          <select id="adminApprovalFilter" onchange="syncCardWithSelect(); resetPageAndFilter();" class="w-full p-2.5 rounded-xl border border-gray-200 bg-white outline-none text-xs focus:ring-2 focus:ring-indigo-500">
+            <option value="all">ทั้งหมด</option>
+            <option value="unassigned">นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)</option>
+            <option value="pending">รอการพิจารณา</option>
+            <option value="reviewed">พิจารณาแล้ว</option>
+            <option value="rejected">ไม่อนุมัติ</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1" style="color: #475569;">อนุมัติโดย (ผู้อนุมัติ)</label>
+          <select id="adminApproverFilter" onchange="resetPageAndFilter()" class="w-full p-2.5 rounded-xl border border-gray-200 bg-white outline-none text-xs focus:ring-2 focus:ring-indigo-500">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead class="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+            <tr>
+              <th class="p-3.5 text-center">รูป</th>
+              <th class="p-3.5">ผู้สมัคร</th>
+              <th class="p-3.5">สถานที่</th>
+              <th class="p-3.5">สถาบัน/สาขา</th>
+              <th class="p-3.5">หน่วยงานที่ขอ</th>
+              <th class="p-3.5">สถานะ</th>
+              <th class="p-3.5 text-center">ผู้อนุมัติ (ผู้พิจารณา)</th>
+              <th class="p-3.5 text-center">ส่ง Email แจ้งผล</th>
+              <th class="p-3.5 text-center">การอนุมัติ / จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody" class="divide-y divide-gray-100">
+            <tr>
+              <td colspan="9" class="p-10 text-center text-gray-400">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-600"></i>
+                <p>กำลังโหลดข้อมูลผู้สมัครล่าสุด...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <div class="text-xs text-gray-500" id="pageInfoText">แสดง 0 ถึง 0 จาก 0 รายการ</div>
+        <div class="flex items-center gap-2">
+          <button id="prevPageBtn" onclick="changePage(-1)" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition">
+            <i class="fa-solid fa-chevron-left mr-1"></i> ย้อนกลับ
+          </button>
+          <span class="text-xs font-bold px-3 py-1 rounded-lg" style="background-color: #e0e7ff; color: #3730a3;" id="currentPageNum">1</span>
+          <button id="nextPageBtn" onclick="changePage(1)" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition">
+            หน้าถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50 backdrop-blur-sm">
+    <div class="glass max-w-2xl w-full rounded-3xl p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b pb-4 border-gray-200">
+        <h3 class="text-xl font-black" style="color: #1e1b4b;"><i class="fa-solid fa-address-card mr-2" style="color: #4f46e5;"></i>รายละเอียดผู้สมัคร</h3>
+        <button onclick="closeDetailModal()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold">✕</button>
+      </div>
+      <div id="modalContent" class="space-y-4 text-xs sm:text-sm text-gray-700"></div>
+      <div class="text-right border-t pt-4 border-gray-200">
+        <button onclick="closeDetailModal()" class="px-5 py-2.5 rounded-2xl bg-gray-200 hover:bg-gray-300 font-bold text-gray-700 transition">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Preview Modal -->
+  <div id="emailPreviewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50 backdrop-blur-sm">
+    <div class="glass max-w-2xl w-full rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] overflow-y-auto bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b pb-4 border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow" style="background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);">
+            <i class="fa-solid fa-envelope-open-text text-lg"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-gray-900">ตัวอย่างอีเมลแจ้งผล (Email Preview)</h3>
+            <p class="text-xs text-gray-400">ตรวจสอบรายละเอียด ผู้รับ และไฟล์แนบก่อนกดส่งจริง</p>
+          </div>
+        </div>
+        <button onclick="closeEmailPreviewModal()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold transition">✕</button>
+      </div>
+
+      <div class="space-y-2 text-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+          <span class="w-24 font-bold text-gray-500 shrink-0"><i class="fa-solid fa-paper-plane mr-1 text-teal-600"></i> ถึง (To):</span>
+          <span id="previewToEmail" class="font-bold text-indigo-700 break-all">-</span>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+          <span class="w-24 font-bold text-gray-500 shrink-0"><i class="fa-solid fa-copy mr-1 text-teal-600"></i> สำเนา (CC):</span>
+          <span id="previewCcEmail" class="font-medium text-gray-700 break-all">-</span>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+          <span class="w-24 font-bold text-gray-500 shrink-0"><i class="fa-solid fa-heading mr-1 text-teal-600"></i> หัวข้อ:</span>
+          <span id="previewSubject" class="font-bold text-gray-900 break-all">-</span>
+        </div>
+        <div class="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+          <span class="font-bold text-gray-500 block mb-1.5"><i class="fa-solid fa-paperclip mr-1 text-teal-600"></i> เอกสารแนบของผู้สมัคร:</span>
+          <div id="previewFilesContainer" class="flex flex-wrap gap-2">
+            <span class="text-gray-400 text-xs">ไม่มีไฟล์แนบ</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs font-bold text-gray-600 mb-1 flex items-center gap-1">
+          <i class="fa-solid fa-eye text-teal-600"></i> เนื้อหาที่จะแสดงในกล่องจดหมาย:
+        </div>
+        <div id="previewEmailBody" class="p-4 rounded-2xl border border-gray-200 bg-slate-50 min-h-[160px] max-h-64 overflow-y-auto"></div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 border-t pt-4 border-gray-200">
+        <button onclick="closeEmailPreviewModal()" class="px-5 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 font-bold text-xs sm:text-sm text-gray-600 transition">
+          ยกเลิก
+        </button>
+        <button id="btnConfirmSendEmail" onclick="executeSendEmail()" class="px-6 py-2.5 rounded-2xl text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center gap-2" style="background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);">
+          <i class="fa-solid fa-paper-plane"></i> ส่ง Email ทันที
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quota Overview & Edit Modal -->
+  <div id="quotaModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/70 backdrop-blur-md">
+    <div class="max-w-7xl w-full rounded-3xl p-5 sm:p-7 space-y-4 max-h-[94vh] flex flex-col shadow-2xl border border-blue-200/80" 
+         style="background: linear-gradient(145deg, #eef5fc 0%, #e3effa 50%, #d8e8f8 100%); box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.4);">
+      
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b pb-3 border-blue-200/70 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0" style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);">
+            <i class="fa-solid fa-chart-pie text-xl"></i>
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-black text-slate-800 leading-tight">ภาพรวมโควตานักศึกษาฝึกงาน (ทุกสังกัด)</h3>
+            <p class="text-xs text-slate-500">เปรียบเทียบสัดส่วนโควต้า อนุมัติ เกิดจริง และคงเหลือ</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3 self-end lg:self-auto">
+          <div class="px-3.5 py-2 rounded-2xl bg-blue-50 border border-blue-200 text-center min-w-[85px] shadow-sm">
+            <span class="text-[11px] font-bold text-blue-700 block tracking-tight">อนุมัติรวม</span>
+            <span class="text-2xl font-black text-blue-600" id="sumQuotaApproved">0</span>
+          </div>
+
+          <div id="cardSumActual" class="px-3.5 py-2 rounded-2xl bg-amber-50 border border-amber-200 text-center min-w-[85px] shadow-sm">
+            <span class="text-[11px] font-bold text-amber-700 block tracking-tight" id="labelSumActual">เกิดจริงรวม</span>
+            <span class="text-2xl font-black text-amber-600" id="sumQuotaActual">0</span>
+          </div>
+
+          <div id="cardSumRemaining" class="px-3.5 py-2 rounded-2xl bg-rose-50 border border-rose-300 text-center min-w-[85px] shadow-sm">
+            <span class="text-[11px] font-bold text-rose-700 block tracking-tight" id="labelSumRemaining">คงเหลือรวม</span>
+            <span class="text-2xl font-black text-rose-600" id="sumQuotaRemaining">0</span>
+          </div>
+
+          <button onclick="closeQuotaModal()" class="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold shadow-sm transition shrink-0 ml-1">✕</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0 overflow-y-auto lg:overflow-visible pr-1">
+        <div class="lg:col-span-7 flex flex-col p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-blue-100 shadow-sm h-[380px] lg:h-[480px]">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-layer-group text-indigo-600"></i> แผนภูมิสัดส่วนการใช้โควต้า (Stacked Progress)
+            </h4>
+            <div class="flex items-center gap-3 text-[11px] font-bold">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>เกิดจริง</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>คงเหลือ</span>
+              <span class="flex items-center gap-1 text-slate-400"><span class="w-2.5 h-2.5 rounded-full bg-blue-300"></span>โควต้ารวม</span>
+            </div>
+          </div>
+          <div class="relative flex-1 w-full">
+            <canvas id="quotaChartCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex flex-col h-[380px] lg:h-[480px] rounded-2xl border border-blue-200/70 bg-white/70 backdrop-blur-sm shadow-sm overflow-hidden">
+          <div class="p-3 bg-blue-100/40 border-b border-blue-200/60 font-bold text-xs text-slate-700 flex justify-between items-center shrink-0">
+            <span><i class="fa-solid fa-pen-to-square text-indigo-600 mr-1"></i> ปรับปรุงโควต้าอนุมัติ</span>
+            <span class="text-[10px] text-slate-500 font-normal">แก้ไขตัวเลขแล้วกดบันทึก</span>
+          </div>
+          
+          <div class="flex-1 overflow-y-auto divide-y divide-blue-50">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-blue-50/90 text-slate-600 font-bold sticky top-0 backdrop-blur z-10 border-b border-blue-100">
+                <tr>
+                  <th class="p-2.5">สังกัด</th>
+                  <th class="p-2.5 text-center w-24">อนุมัติ</th>
+                  <th class="p-2.5 text-center">เกิดจริง</th>
+                  <th class="p-2.5 text-center">คงเหลือ</th>
+                </tr>
+              </thead>
+              <tbody id="quotaTableBody" class="divide-y divide-blue-50/70">
+                <tr>
+                  <td colspan="4" class="p-8 text-center text-slate-400">
+                    <i class="fa-solid fa-spinner fa-spin text-indigo-600 text-lg mb-1"></i>
+                    <p>กำลังโหลดข้อมูลโควต้า...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="p-3 bg-blue-100/30 border-t border-blue-200/60 flex items-center justify-end shrink-0">
+            <button id="btnSaveQuota" onclick="saveQuotaChanges()" class="px-5 py-2 rounded-xl text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+              <i class="fa-solid fa-floppy-disk"></i> บันทึกโควต้า
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let currentAdmin = { username: 'Admin', role: 'admin', fullName: 'ผู้ดูแลระบบ (Admin)' };
+  let adminDataList = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+  let emailSentRows = {};
+
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      const sessionUser = JSON.parse(sessionStorage.getItem('mitrpholAdminUser') || 'null') 
+                       || JSON.parse(sessionStorage.getItem('mitrpholCompanyUser') || 'null');
+      if (sessionUser && sessionUser.username) {
+        currentAdmin = sessionUser;
+      }
+    } catch(e) {
+      console.error(e);
+    }
+
+    const adminNameEl = document.getElementById('adminName');
+    const adminPosEl = document.getElementById('adminPosition');
+    if (adminNameEl) adminNameEl.innerText = currentAdmin.fullName || currentAdmin.username || 'ผู้ดูแลระบบ';
+    if (adminPosEl) adminPosEl.innerText = (currentAdmin.position || 'Admin') + (currentAdmin.department ? ' · ' + currentAdmin.department : ' · ด้านบริหาร');
+
+    loadAdminData();
+  });
+
+  async function loadAdminData() {
+    const tbody = document.getElementById('adminTableBody');
+    tbody.innerHTML = `
+      <tr><td colspan="9" class="p-10 text-center text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2" style="color: #4f46e5;"></i>
+        <p>กำลังโหลดข้อมูลผู้สมัครล่าสุด...</p>
+      </td></tr>`;
+
+    try {
+      const data = await callGasGet('getapplications', { username: '', role: 'admin' });
+      if (data && data.success === false) {
+        throw new Error(data.message);
+      }
+      renderAdminData(data || []);
+    } catch (err) {
+      console.error(err);
+      tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center font-bold text-red-500">
+        <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i><br>
+        ไม่สามารถดึงข้อมูลได้: ${err.message || err}
+      </td></tr>`;
+    }
+  }
+
+  function renderAdminData(data) {
+    adminDataList = Array.isArray(data) ? data : [];
+    populateFiltersDropdown();
+    updateSummaryCards();
+    filterAdminTable();
+  }
+
+  function populateFiltersDropdown() {
+    const locSelect = document.getElementById('adminLocationFilter');
+    const curLoc = locSelect.value;
+    const locations = Array.from(new Set(adminDataList.map(x => x.location).filter(Boolean))).sort();
+    locSelect.innerHTML = '<option value="">ทั้งหมด</option>' + locations.map(l => `<option value="${l}">${l}</option>`).join('');
+    locSelect.value = curLoc;
+
+    const appSelect = document.getElementById('adminApproverFilter');
+    const curApp = appSelect.value;
+    const approvers = Array.from(new Set(adminDataList.map(x => x.approverDisplayName || x.reviewerUsername).filter(x => x && x !== '-'))).sort();
+    appSelect.innerHTML = '<option value="">ทั้งหมด</option>' + approvers.map(a => `<option value="${a}">${a}</option>`).join('');
+    appSelect.value = curApp;
+  }
+
+  function updateSummaryCards() {
+    const isApprovedStatus = (s) => ['reviewed', 'approved', 'อนุมัติแล้ว'].includes(String(s || '').toLowerCase().trim());
+    const isRejectedStatus = (s) => ['rejected', 'ไม่อนุมัติ'].includes(String(s || '').toLowerCase().trim());
+    const isPendingStatus = (s) => ['pending', 'รอการพิจารณา'].includes(String(s || '').toLowerCase().trim());
+    const isUnassigned = (s) => (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง');
+
+    const total = adminDataList.length;
+    const newCount = adminDataList.filter(x => isUnassigned(x.reviewStatus || x.status)).length;
+    const pendingCount = adminDataList.filter(x => isPendingStatus(x.reviewStatus || x.status)).length;
+    const reviewedCount = adminDataList.filter(x => isApprovedStatus(x.reviewStatus || x.status)).length;
+    const rejectedCount = adminDataList.filter(x => isRejectedStatus(x.reviewStatus || x.status)).length;
+
+    document.getElementById('countAll').innerText = total;
+    document.getElementById('countNew').innerText = newCount;
+    document.getElementById('countPending').innerText = pendingCount;
+    document.getElementById('countReviewed').innerText = reviewedCount;
+    document.getElementById('countRejected').innerText = rejectedCount;
+  }
+
+  function selectCardFilter(type) {
+    const approvalSelect = document.getElementById('adminApprovalFilter');
+    const tableTitle = document.getElementById('tableTitle');
+
+    approvalSelect.value = type;
+    if (type === 'all') tableTitle.innerText = 'รายการผู้สมัครทั้งหมด';
+    else if (type === 'unassigned') tableTitle.innerText = 'รายการ นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)';
+    else if (type === 'pending') tableTitle.innerText = 'รายการรอการพิจารณา';
+    else if (type === 'reviewed') tableTitle.innerText = 'รายการพิจารณาแล้ว';
+    else if (type === 'rejected') tableTitle.innerText = 'รายการไม่อนุมัติ';
+
+    updateCardUI(type);
+    resetPageAndFilter();
+  }
+
+  function updateCardUI(type) {
+    const cards = ['cardAll', 'cardNew', 'cardPending', 'cardReviewed', 'cardRejected'];
+    cards.forEach(id => {
+      document.getElementById(id)?.classList.remove('card-all-active', 'card-new-active', 'card-pending-active', 'card-reviewed-active', 'card-rejected-active');
+    });
+
+    if (type === 'all') document.getElementById('cardAll')?.classList.add('card-all-active');
+    else if (type === 'unassigned') document.getElementById('cardNew')?.classList.add('card-new-active');
+    else if (type === 'pending') document.getElementById('cardPending')?.classList.add('card-pending-active');
+    else if (type === 'reviewed') document.getElementById('cardReviewed')?.classList.add('card-reviewed-active');
+    else if (type === 'rejected') document.getElementById('cardRejected')?.classList.add('card-rejected-active');
+  }
+
+  function syncCardWithSelect() {
+    const val = document.getElementById('adminApprovalFilter').value;
+    updateCardUI(val);
+  }
+
+  function resetPageAndFilter() {
+    currentPage = 1;
+    filterAdminTable();
+  }
+
+  function filterAdminTable() {
+    const search = document.getElementById('adminSearchInput').value.toLowerCase().trim();
+    const location = document.getElementById('adminLocationFilter').value;
+    const unit = document.getElementById('adminUnitFilter').value;
+    const approval = document.getElementById('adminApprovalFilter').value;
+    const approver = document.getElementById('adminApproverFilter').value;
+
+    const filtered = adminDataList.filter(item => {
+      const matchSearch = !search ||
+        (item.fullName && item.fullName.toLowerCase().includes(search)) ||
+        (item.institution && item.institution.toLowerCase().includes(search)) ||
+        (item.major && item.major.toLowerCase().includes(search));
+
+      const matchLocation = !location || item.location === location;
+      const matchUnit = !unit || item.workUnit === unit;
+
+      const appName = item.approverDisplayName || item.reviewerUsername || '';
+      const matchApprover = !approver || appName === approver;
+
+      let matchApproval = true;
+      const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+
+      if (approval === 'unassigned') {
+        matchApproval = (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง');
+      } else if (approval === 'pending') {
+        matchApproval = (s === 'pending' || s === 'รอการพิจารณา');
+      } else if (approval === 'reviewed') {
+        matchApproval = (s === 'reviewed' || s === 'approved' || s === 'อนุมัติแล้ว');
+      } else if (approval === 'rejected') {
+        matchApproval = (s === 'rejected' || s === 'ไม่อนุมัติ');
+      }
+
+      return matchSearch && matchLocation && matchUnit && matchApprover && matchApproval;
+    });
+
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+    const pageItems = filtered.slice(startIndex, endIndex);
+
+    document.getElementById('pageInfoText').innerText = `แสดง ${totalItems > 0 ? startIndex + 1 : 0} ถึง ${endIndex} จาก ${totalItems} รายการ`;
+    document.getElementById('currentPageNum').innerText = currentPage;
+    document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+    document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+    const tbody = document.getElementById('adminTableBody');
+    if (!pageItems.length) {
+      tbody.innerHTML = `<tr><td colspan="9" class="p-10 text-center text-gray-400">ไม่พบข้อมูลที่ตรงตามเงื่อนไข</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = pageItems.map(item => {
+      const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+      const isPending = (s === 'pending' || s === 'รอการพิจารณา');
+      const isApproved = (s === 'reviewed' || s === 'approved' || s === 'อนุมัติแล้ว');
+      const isRejected = (s === 'rejected' || s === 'ไม่อนุมัติ');
+      const isUnassigned = (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง');
+
+      let statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 inline-flex items-center">ยังไม่มีผู้รับเรื่อง</span>`;
+      if (isApproved) {
+        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 inline-flex items-center"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติแล้ว</span>`;
+      } else if (isRejected) {
+        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 inline-flex items-center"><i class="fa-solid fa-circle-xmark mr-1"></i>ไม่อนุมัติ</span>`;
+      } else if (isPending) {
+        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 inline-flex items-center"><i class="fa-solid fa-clock mr-1"></i>รอการพิจารณา</span>`;
+      }
+
+      const approverName = item.approverDisplayName || item.reviewerUsername || '-';
+      const isSent = Boolean(emailSentRows[item.sheetRow] || (item.emailSentStatus && item.emailSentStatus.includes('ส่งแล้ว')));
+
+      let emailBtn = '';
+      if (isSent) {
+        emailBtn = `<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold border border-teal-200 bg-teal-50 text-teal-700 shadow-sm"><i class="fa-solid fa-check-double"></i> ส่งแล้ว</span>`;
+      } else if (isApproved || isRejected) {
+        emailBtn = `
+          <button id="btnEmail_${item.sheetRow}" onclick="handleSendEmail(${item.sheetRow}, '${item.fullName}')" class="px-3 py-1.5 rounded-xl text-white font-bold text-xs shadow-sm hover:opacity-95 transition" style="background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);">
+            <i class="fa-solid fa-paper-plane mr-1"></i>ส่ง Email
+          </button>`;
+      } else {
+        emailBtn = `<span class="text-xs text-gray-400 font-medium">-</span>`;
+      }
+
+      let actionBtn = '';
+      if (!isUnassigned) {
+        actionBtn = `
+          <button onclick="handleAdminResetClaim(${item.sheetRow})" class="px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition" style="background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;">
+            <i class="fa-solid fa-rotate-left mr-1"></i>ยกเลิกการอนุมัติ
+          </button>`;
+      } else {
+        actionBtn = `<span class="text-xs text-gray-400">-</span>`;
+      }
+
+      const profileImg = item.profileImageLink 
+        ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="w-9 h-9 rounded-full object-cover border border-gray-200 mx-auto shadow-sm" onerror="this.onerror=null; this.src='https://via.placeholder.com/36';">`
+        : `<div class="w-9 h-9 rounded-full flex items-center justify-center mx-auto" style="background-color: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-user"></i></div>`;
+
+      return `
+        <tr onclick="openDetailModal(${item.sheetRow})" class="hover:bg-indigo-50/40 transition cursor-pointer">
+          <td class="p-3.5 text-center" onclick="event.stopPropagation()">${profileImg}</td>
+          <td class="p-3.5">
+            <div class="font-bold text-gray-900">${item.fullName} ${item.nickName ? `(${item.nickName})` : ''}</div>
+            <div class="text-xs text-gray-400"><i class="fa-solid fa-phone mr-1"></i>${item.phone || '-'}</div>
+          </td>
+          <td class="p-3.5 text-xs text-gray-700">${item.location || '-'}</td>
+          <td class="p-3.5"><div>${item.institution || '-'}</div><div class="text-xs text-gray-400">${item.degree || ''} ${item.major || ''}</div></td>
+          <td class="p-3.5 leading-tight">
+            <span class="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">
+              ${item.workUnit || '-'}
+            </span>
+            ${(item.selectedSection && item.selectedSection !== '-') ? `
+              <div class="text-xs font-semibold text-gray-600 mt-1 flex items-center gap-1.5">
+                <i class="fa-solid fa-turn-up rotate-90 text-xs text-blue-400"></i>
+                <span>${item.selectedSection}</span>
+              </div>` : ''}
+          </td>
+          <td class="p-3.5">${statusBadge}</td>
+          <td class="p-3.5 text-center font-bold text-xs" style="color: #1e1b4b;">${approverName}</td>
+          <td class="p-3.5 text-center" onclick="event.stopPropagation()">${emailBtn}</td>
+          <td class="p-3.5 text-center" onclick="event.stopPropagation()">${actionBtn}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function changePage(dir) {
+    currentPage += dir;
+    filterAdminTable();
+  }
+
+  async function handleAdminResetClaim(sheetRow) {
+    if (!confirm('ยืนยันการ "ยกเลิกการอนุมัติ" ของรายการนี้ใช่หรือไม่?\nระบบจะรีเซ็ตสถานะกลับเป็น นศ.ฝึกงานใหม่ (ยังไม่มีผู้รับเรื่อง)')) return;
+
+    try {
+      const res = await callGasPost('adminreset', {
+        rowId: sheetRow,
+        adminUsername: currentAdmin.username || 'Admin'
+      });
+
+      if (res && res.success) {
+        alert(res.message);
+        loadAdminData();
+      } else {
+        alert((res && res.message) || 'ไม่สามารถดำเนินการได้');
+      }
+    } catch (err) {
+      alert(err.message || err);
+    }
+  }
+
+  let currentEmailRowTarget = null;
+
+  async function handleSendEmail(sheetRow, applicantName) {
+    currentEmailRowTarget = sheetRow;
+
+    document.getElementById('previewToEmail').innerText = 'กำลังโหลดข้อมูล...';
+    document.getElementById('previewCcEmail').innerText = '-';
+    document.getElementById('previewSubject').innerText = 'กำลังโหลด...';
+    document.getElementById('previewFilesContainer').innerHTML = '<span class="text-gray-400">กำลังตรวจสอบ...</span>';
+    document.getElementById('previewEmailBody').innerHTML = `
+      <div class="py-8 text-center text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin text-xl text-teal-600 mb-2"></i>
+        <p>กำลังดึงข้อมูลและเตรียมเทมเพลตอีเมล...</p>
+      </div>`;
+
+    const btnConfirm = document.getElementById('btnConfirmSendEmail');
+    btnConfirm.disabled = true;
+    btnConfirm.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> ส่ง Email ทันที`;
+
+    document.getElementById('emailPreviewModal').classList.remove('hidden');
+
+    try {
+      const res = await callGasGet('getemailpreview', { rowId: sheetRow });
+      if (!res || !res.success) {
+        alert('ไม่สามารถดึงข้อมูลได้: ' + (res ? res.message : ''));
+        closeEmailPreviewModal();
+        return;
+      }
+
+      document.getElementById('previewToEmail').innerText = res.to || '(ไม่มีอีเมลในระบบ)';
+      document.getElementById('previewCcEmail').innerText = res.cc || '(ไม่มี)';
+      document.getElementById('previewSubject').innerText = res.subject;
+      document.getElementById('previewEmailBody').innerHTML = res.bodyHtml;
+
+      const filesContainer = document.getElementById('previewFilesContainer');
+      if (res.files && res.files.length > 0) {
+        filesContainer.innerHTML = res.files.map(f => `
+          <a href="${f.url}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition">
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> ${f.name}
+          </a>
+        `).join('');
+      } else {
+        filesContainer.innerHTML = '<span class="text-gray-400 text-xs">ไม่มีไฟล์แนบ</span>';
+      }
+
+      if (res.to && res.to.indexOf('@') > 0) {
+        btnConfirm.disabled = false;
+      } else {
+        btnConfirm.disabled = true;
+        alert('ไม่พบอีเมลของนักศึกษาในระบบ จึงไม่สามารถส่งอีเมลได้');
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err.message || err));
+      closeEmailPreviewModal();
+    }
+  }
+
+  async function executeSendEmail() {
+    if (!currentEmailRowTarget) return;
+    const sheetRow = currentEmailRowTarget;
+
+    const btnModal = document.getElementById('btnConfirmSendEmail');
+    btnModal.disabled = true;
+    btnModal.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังส่ง...`;
+
+    const btnTable = document.getElementById(`btnEmail_${sheetRow}`);
+    if (btnTable) {
+      btnTable.disabled = true;
+      btnTable.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังส่ง...`;
+    }
+
+    try {
+      const res = await callGasPost('sendadminemail', {
+        rowId: sheetRow,
+        adminUsername: currentAdmin.username || 'Admin'
+      });
+
+      closeEmailPreviewModal();
+      if (res && res.success) {
+        alert(res.message);
+        emailSentRows[sheetRow] = true;
+        filterAdminTable();
+      } else {
+        alert((res && res.message) || 'เกิดข้อผิดพลาดในการส่งอีเมล');
+        if (btnTable) {
+          btnTable.disabled = false;
+          btnTable.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i>ส่ง Email`;
+        }
+      }
+    } catch (err) {
+      closeEmailPreviewModal();
+      alert('ส่งอีเมลไม่สำเร็จ: ' + (err.message || err));
+      if (btnTable) {
+        btnTable.disabled = false;
+        btnTable.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i>ส่ง Email`;
+      }
+    }
+  }
+
+  function closeEmailPreviewModal() {
+    document.getElementById('emailPreviewModal').classList.add('hidden');
+    currentEmailRowTarget = null;
+  }
+
+  function openDetailModal(sheetRow) {
+    const item = adminDataList.find(x => x.sheetRow === sheetRow);
+    if (!item) return;
+
+    let fileLinksHtml = '<span class="text-gray-400">ไม่มีไฟล์แนบ</span>';
+    if (item.fileLinks && item.fileLinks.trim() !== '') {
+      const lines = item.fileLinks.split('\n');
+      fileLinksHtml = lines.map(line => {
+        const parts = line.split(': http');
+        if (parts.length >= 2) {
+          const title = parts[0].trim();
+          const url = 'http' + parts.slice(1).join(': http').trim();
+          return `<a href="${url}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition mr-2 mb-2" style="background-color: #e0e7ff; color: #3730a3;"><i class="fa-solid fa-file-lines"></i> ${title}</a>`;
+        }
+        return `<a href="${line}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition mr-2 mb-2" style="background-color: #e0e7ff; color: #3730a3;"><i class="fa-solid fa-paperclip"></i> เอกสาร</a>`;
+      }).join('');
+    }
+
+    const content = `
+      <div class="flex items-center gap-5 p-4 sm:p-5 rounded-2xl" style="background-color: #eef2ff;">
+        ${item.profileImageLink 
+          ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-4 shadow-md shrink-0" style="border-color: #4f46e5;">`
+          : `<div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full flex items-center justify-center text-4xl shrink-0" style="background-color: #c7d2fe; color: #3730a3;"><i class="fa-solid fa-user"></i></div>`
+        }
+        <div>
+          <h4 class="text-xl font-black text-gray-900">${item.fullName} (${item.nickName || '-'})</h4>
+          <p class="text-sm font-semibold" style="color: #4338ca;">${item.institution || '-'} · ${item.major || '-'}</p>
+          <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>${item.location || '-'}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>เบอร์โทรศัพท์:</strong> ${item.phone || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>Line ID:</strong> ${item.lineId || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>อีเมลนักศึกษา:</strong> ${item.emailStudent || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>อีเมลสถาบัน:</strong> ${item.emailInst || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>ระดับการศึกษา:</strong> ${item.degree || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>หน่วยงานที่ขอ:</strong> ${item.workUnit || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>ช่วงเวลาฝึกงาน:</strong> ${item.startDate || '-'} ถึง ${item.endDate || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>ผู้อนุมัติ (ผู้พิจารณา):</strong> ${item.approverDisplayName || item.reviewerUsername || 'ยังไม่มีผู้รับเรื่อง'}</div>
+      </div>
+
+      <div class="p-3 bg-gray-50 rounded-xl text-xs space-y-1">
+        <div><strong>ที่อยู่:</strong> ${item.address || '-'}</div>
+        <div><strong>ทักษะ/ความสามารถ:</strong> ${item.skills || '-'}</div>
+        <div><strong>ผู้ติดต่อฉุกเฉิน:</strong> ${item.emergencyName || '-'} (${item.emergencyPhone || '-'})</div>
+      </div>
+
+      <div class="p-3 bg-gray-50 rounded-xl text-xs">
+        <div class="font-bold mb-2 text-gray-600">เอกสารแนบประกอบการสมัคร:</div>
+        <div>${fileLinksHtml}</div>
+      </div>
+    `;
+
+    document.getElementById('modalContent').innerHTML = content;
+    document.getElementById('detailModal').classList.remove('hidden');
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detailModal').classList.add('hidden');
+  }
+
+  function adminLogout() {
+    sessionStorage.removeItem('mitrpholAdminUser');
+    window.location.href = 'index.html';
+  }
+
+  // ==========================================
+  // Quota Overview & Management Functions
+  // ==========================================
+  let quotaListCache = [];
+  let quotaChartInstance = null;
+
+  function openQuotaModal() {
+    document.getElementById('quotaModal').classList.remove('hidden');
+    loadQuotaOverviewData();
+  }
+
+  function closeQuotaModal() {
+    document.getElementById('quotaModal').classList.add('hidden');
+  }
+
+  async function loadQuotaOverviewData() {
+    const tbody = document.getElementById('quotaTableBody');
+    tbody.innerHTML = `
+      <tr><td colspan="4" class="p-8 text-center text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin text-xl text-indigo-600 mb-2"></i>
+        <p>กำลังโหลดข้อมูลโควต้า...</p>
+      </td></tr>`;
+
+    try {
+      const res = await callGasGet('getallquota');
+      renderQuotaOverview(res);
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">ไม่สามารถดึงข้อมูลได้: ${err.message || err}</td></tr>`;
+    }
+  }
+
+  function renderQuotaOverview(res) {
+    if (!res || !res.success) {
+      alert("ไม่สามารถดึงข้อมูลโควต้าได้: " + (res ? res.message : ""));
+      return;
+    }
+
+    quotaListCache = res.data || [];
+    updateQuotaSummaryHeaders(res.totals.approved, res.totals.actual, res.totals.remaining);
+
+    const tbody = document.getElementById('quotaTableBody');
+    if (tbody) {
+      tbody.innerHTML = quotaListCache.map((item, index) => {
+        const rem = Number(item.remaining) || 0;
+        const remStyle = rem < 0 ? 'color: #e11d48; font-weight: 900;' : (rem > 0 ? 'color: #059669; font-weight: 900;' : 'color: #94a3b8; font-weight: 700;');
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-2.5 font-bold text-slate-800 leading-snug">${item.affiliation}</td>
+            <td class="p-2 text-center">
+              <input type="number" min="0" value="${item.approved}" 
+                     oninput="handleQuotaInputChange(${index}, this.value)"
+                     class="w-16 p-1 text-center font-black text-blue-700 bg-blue-50/80 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs">
+            </td>
+            <td class="p-2.5 text-center font-bold text-amber-600">${item.actual}</td>
+            <td class="p-2.5 text-center text-xs" style="${remStyle}" id="tdRemaining_${index}">
+              ${rem < 0 ? rem : (rem > 0 ? '+' + rem : '0')}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    renderModernQuotaChart(quotaListCache);
+  }
+
+  function updateQuotaSummaryHeaders(approved, actual, remaining) {
+    const appEl = document.getElementById('sumQuotaApproved');
+    if (appEl) appEl.innerText = approved;
+
+    const actVal = Number(actual) || 0;
+    const actSumEl = document.getElementById('sumQuotaActual');
+    const cardActSum = document.getElementById('cardSumActual');
+    const lblActSum = document.getElementById('labelSumActual');
+    
+    if (actSumEl) {
+      actSumEl.innerText = actVal;
+      if (actVal > 0) {
+        actSumEl.style.color = "#d97706";
+        if (lblActSum) lblActSum.style.color = "#b45309";
+        if (cardActSum) {
+          cardActSum.style.backgroundColor = "#fffbeb";
+          cardActSum.style.borderColor = "#fcd34d";
+        }
+      } else {
+        actSumEl.style.color = "#64748b";
+        if (lblActSum) lblActSum.style.color = "#64748b";
+        if (cardActSum) {
+          cardActSum.style.backgroundColor = "#f8fafc";
+          cardActSum.style.borderColor = "#e2e8f0";
+        }
+      }
+    }
+
+    const remVal = Number(remaining) || 0;
+    const sumRemEl = document.getElementById('sumQuotaRemaining');
+    const cardRemSum = document.getElementById('cardSumRemaining');
+    const lblRemSum = document.getElementById('labelSumRemaining');
+
+    if (sumRemEl) {
+      sumRemEl.innerText = remVal;
+      if (remVal < 0) {
+        sumRemEl.style.color = "#e11d48";
+        if (lblRemSum) lblRemSum.style.color = "#be123c";
+        if (cardRemSum) {
+          cardRemSum.style.backgroundColor = "#fff1f2";
+          cardRemSum.style.borderColor = "#fda4af";
+        }
+      } else if (remVal > 0) {
+        sumRemEl.style.color = "#059669";
+        if (lblRemSum) lblRemSum.style.color = "#047857";
+        if (cardRemSum) {
+          cardRemSum.style.backgroundColor = "#f0fdf4";
+          cardRemSum.style.borderColor = "#86efac";
+        }
+      } else {
+        sumRemEl.style.color = "#475569";
+        if (lblRemSum) lblRemSum.style.color = "#64748b";
+        if (cardRemSum) {
+          cardRemSum.style.backgroundColor = "#f8fafc";
+          cardRemSum.style.borderColor = "#e2e8f0";
+        }
+      }
+    }
+  }
+
+  function handleQuotaInputChange(index, newVal) {
+    const val = parseInt(newVal, 10) || 0;
+    quotaListCache[index].approved = val;
+    quotaListCache[index].remaining = val - quotaListCache[index].actual;
+
+    const tdRem = document.getElementById(`tdRemaining_${index}`);
+    if (tdRem) {
+      const r = quotaListCache[index].remaining;
+      tdRem.innerText = r < 0 ? r : (r > 0 ? '+' + r : '0');
+      tdRem.style.color = r < 0 ? '#e11d48' : (r > 0 ? '#059669' : '#94a3b8');
+      tdRem.style.fontWeight = r !== 0 ? '900' : '700';
+    }
+
+    const totalApp = quotaListCache.reduce((sum, item) => sum + (Number(item.approved) || 0), 0);
+    const totalAct = quotaListCache.reduce((sum, item) => sum + (Number(item.actual) || 0), 0);
+    const totalRem = totalApp - totalAct;
+    updateQuotaSummaryHeaders(totalApp, totalAct, totalRem);
+
+    renderModernQuotaChart(quotaListCache);
+  }
+
+  function renderModernQuotaChart(list) {
+    const canvas = document.getElementById('quotaChartCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (quotaChartInstance) {
+      quotaChartInstance.destroy();
+    }
+
+    const labels = list.map(x => x.affiliation);
+    const actualData = list.map(x => x.actual);
+    const availableData = list.map(x => Math.max(0, x.remaining));
+    const overData = list.map(x => x.remaining < 0 ? Math.abs(x.remaining) : 0);
+
+    const gradActual = ctx.createLinearGradient(0, 0, 300, 0);
+    gradActual.addColorStop(0, '#f59e0b');
+    gradActual.addColorStop(1, '#fbbf24');
+
+    const gradAvailable = ctx.createLinearGradient(0, 0, 300, 0);
+    gradAvailable.addColorStop(0, '#059669');
+    gradAvailable.addColorStop(1, '#34d399');
+
+    const gradOver = ctx.createLinearGradient(0, 0, 300, 0);
+    gradOver.addColorStop(0, '#dc2626');
+    gradOver.addColorStop(1, '#f87171');
+
+    quotaChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'เกิดจริง (รับแล้ว)', data: actualData, backgroundColor: gradActual, borderRadius: 6, borderSkipped: false, stack: 'quotaStack' },
+          { label: 'คงเหลือ (รับได้อีก)', data: availableData, backgroundColor: gradAvailable, borderRadius: 6, borderSkipped: false, stack: 'quotaStack' },
+          { label: 'เกินโควต้า', data: overData, backgroundColor: gradOver, borderRadius: 6, borderSkipped: false, stack: 'quotaStack' }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            padding: 10,
+            titleFont: { family: 'Kanit', size: 12, weight: 'bold' },
+            bodyFont: { family: 'Kanit', size: 11 },
+            callbacks: {
+              afterBody: function(context) {
+                const idx = context[0].dataIndex;
+                const item = list[idx];
+                return `\n📌 โควต้าอนุมัติทั้งหมด: ${item.approved} คน\n✅ เกิดจริง: ${item.actual} คน\n${item.remaining < 0 ? '⚠️ เกินโควต้า: ' + Math.abs(item.remaining) : '🟢 คงเหลือ: ' + item.remaining} คน`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            beginAtZero: true,
+            grid: { color: 'rgba(226, 232, 240, 0.7)' },
+            ticks: { font: { family: 'Kanit', size: 10, weight: '600' } }
+          },
+          y: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { font: { family: 'Kanit', size: 10, weight: 'bold' }, color: '#334155' }
+          }
+        }
+      }
+    });
+  }
+
+  async function saveQuotaChanges() {
+    const btn = document.getElementById('btnSaveQuota');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...`;
+
+    try {
+      const res = await callGasPost('updatequota', {
+        updatedList: quotaListCache,
+        adminName: currentAdmin.fullName || currentAdmin.username || 'Admin'
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+
+      if (res && res.success) {
+        alert(res.message);
+        loadQuotaOverviewData();
+      } else {
+        alert("บันทึกไม่สำเร็จ: " + ((res && res.message) ? res.message : 'เกิดข้อผิดพลาด'));
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      alert("เกิดข้อผิดพลาด: " + (err.message || err));
+    }
+  }
+</script>
+</body>
+</html>

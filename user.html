@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Dashboard - Mitr Phol Internship</title>
+  <script src="api-config.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    .hidden { display: none !important; }
+    body {
+      font-family: 'Kanit', Arial, sans-serif;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(22,133,230,.20), transparent 30%),
+        radial-gradient(circle at 85% 15%, rgba(0,82,155,.16), transparent 28%),
+        linear-gradient(135deg,#eef7ff 0%,#f8fbff 48%,#e7f2ff 100%);
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 18px 50px -20px rgba(0, 82, 155, 0.2);
+    }
+    .card-active {
+      border: 2px solid #1685e6 !important;
+      background: rgba(22, 133, 230, 0.08) !important;
+    }
+    .bg-brand-50 { background-color: #eff7ff; }
+    .bg-brand-100 { background-color: #dbeeff; }
+    .bg-brand-600 { background-color: #0069c7; }
+    .text-brand-600 { color: #0069c7; }
+    .text-brand-700 { color: #00529b; }
+    .hover\:bg-brand-700:hover { background-color: #00529b; }
+    .hover\:bg-brand-100:hover { background-color: #dbeeff; }
+  </style>
+</head>
+<body class="text-gray-800 pb-16">
+
+  <div id="userApp" class="max-w-7xl mx-auto p-4 md:p-8">
+    
+    <!-- Header -->
+    <header class="glass rounded-3xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg">
+          <i class="fa-solid fa-user-graduate text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl md:text-3xl font-black text-brand-700">ระบบรับนักศึกษาฝึกงาน</h1>
+            <span class="px-2.5 py-1 rounded-full bg-brand-100 text-brand-700 text-xs font-bold" id="userRoleBadge">เจ้าหน้าที่</span>
+          </div>
+          <p class="text-sm text-gray-500">กลุ่มมิตรผล · Mitr Phol Internship Management</p>
+        </div>
+      </div>
+      <button onclick="userLogout()" class="px-4 py-2.5 rounded-2xl border border-red-200 text-red-500 hover:bg-red-50 font-bold transition flex items-center gap-2">
+        <i class="fa-solid fa-right-from-bracket"></i> กลับหน้าหลัก
+      </button>
+    </header>
+
+    <!-- User Profile & Quota Section -->
+    <section class="glass rounded-3xl p-5 mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center shadow flex-shrink-0">
+          <i class="fa-solid fa-id-badge text-xl"></i>
+        </div>
+        <div>
+          <div class="text-xs text-gray-400">ผู้ใช้งานระบบปัจจุบัน</div>
+          <div id="userName" class="font-extrabold text-lg text-gray-800">-</div>
+          <div id="userPosition" class="text-sm font-semibold text-brand-700">-</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 sm:gap-3.5 bg-white/80 p-2 sm:p-2.5 rounded-2xl border border-gray-100 shadow-sm self-stretch md:self-auto justify-between sm:justify-end">
+        <div id="boxApproved" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 min-w-[80px]">
+          <span class="block text-xs font-bold text-blue-700">อนุมัติ</span>
+          <span class="text-2xl font-black text-blue-600" id="quotaApproved">0</span>
+        </div>
+
+        <div id="boxActual" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 min-w-[80px]">
+          <span class="block text-xs font-bold text-amber-800" id="labelActual">เกิดจริง</span>
+          <span class="text-2xl font-black text-amber-600" id="quotaActual">0</span>
+        </div>
+
+        <div id="boxRemaining" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 min-w-[80px]">
+          <span class="block text-xs font-bold text-emerald-800" id="labelRemaining">คงเหลือ</span>
+          <span class="text-2xl font-black text-emerald-600" id="quotaRemaining">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+      <div id="cardNew" onclick="selectCardFilter('unassigned')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition card-active">
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-gray-600">นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)</p>
+          <h3 class="text-3xl font-black text-blue-600" id="newAppsCount">0</h3>
+        </div>
+      </div>
+
+      <div id="cardPending" onclick="selectCardFilter('pending_approval')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition">
+        <div class="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-xl shrink-0">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-gray-600">รอการพิจารณา</p>
+          <h3 class="text-3xl font-black text-yellow-600" id="pendingAppsCount">0</h3>
+        </div>
+      </div>
+
+      <div id="cardReviewed" onclick="selectCardFilter('reviewed')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition">
+        <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center text-xl shrink-0">
+          <i class="fa-solid fa-building-circle-check"></i>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-gray-600">พิจารณาแล้ว</p>
+          <h3 class="text-3xl font-black text-green-600" id="reviewedAppsCount">0</h3>
+        </div>
+      </div>
+
+      <div id="cardAll" onclick="selectCardFilter('all')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition">
+        <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+          <i class="fa-solid fa-list-check"></i>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-gray-600">ทั้งหมดที่เข้าถึงได้</p>
+          <h3 class="text-3xl font-black text-purple-600" id="allAppsCount">0</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table Container & Filters -->
+    <section class="glass rounded-3xl p-6 lg:p-8 mt-6 space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 border-gray-200">
+        <div>
+          <h2 class="text-xl font-black text-gray-800" id="tableTitle">รายการ นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)</h2>
+          <p class="text-xs text-gray-500">คลิกที่ Card ด้านบนเพื่อกรอง หรือค้นหาจากแบบฟอร์มด้านล่าง</p>
+        </div>
+        <button onclick="loadUserData()" class="px-4 py-2 rounded-2xl bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 transition flex items-center gap-2 text-sm">
+          <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1 text-gray-500">ค้นหาชื่อ/สถาบัน/สาขา</label>
+          <input type="text" id="userSearchInput" oninput="resetPageAndFilter()" placeholder="พิมพ์คำค้นหา..." class="w-full p-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1 text-gray-500">สถานที่</label>
+          <select id="userLocationFilter" onchange="resetPageAndFilter()" class="w-full p-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1 text-gray-500">หน่วยงานที่ขอฝึกงาน</label>
+          <select id="userUnitFilter" onchange="resetPageAndFilter()" class="w-full p-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">ทั้งหมด</option>
+            <option value="ด้านโรงงาน">ด้านโรงงาน</option>
+            <option value="ด้านอ้อย">ด้านอ้อย</option>
+            <option value="ด้านโลจิสติกส์">ด้านโลจิสติกส์</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1 text-gray-500">สถานะการอนุมัติ</label>
+          <select id="userApprovalFilter" onchange="syncCardWithSelect(); resetPageAndFilter();" class="w-full p-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="unassigned">นศ. เข้ามาใหม่ (ยังไม่ถูกเลือก)</option>
+            <option value="pending_approval">รอการพิจารณา </option>
+            <option value="reviewed">พิจารณาแล้ว </option>
+            <option value="all">ทั้งหมดที่เข้าถึงได้</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+            <tr>
+              <th class="p-4 text-center">รูป</th>
+              <th class="p-4">ผู้สมัคร</th>
+              <th class="p-4">สถานที่</th>
+              <th class="p-4">สถาบัน/สาขา</th>
+              <th class="p-4">หน่วยงานที่ขอ</th>
+              <th class="p-4">สถานะ</th>
+              <th class="p-4 text-center">อนุมัติโดย</th>
+              <th class="p-4 text-center">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody" class="divide-y divide-gray-100">
+            <tr>
+              <td colspan="8" class="p-10 text-center text-gray-400">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>กำลังโหลดข้อมูล...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <div class="text-xs text-gray-500" id="pageInfoText">แสดง 0 ถึง 0 จาก 0 รายการ</div>
+        <div class="flex items-center gap-2">
+          <button id="prevPageBtn" onclick="changePage(-1)" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition">
+            <i class="fa-solid fa-chevron-left mr-1"></i> ย้อนกลับ
+          </button>
+          <span class="text-xs font-bold px-3 py-1 bg-brand-50 text-brand-700 rounded-lg" id="currentPageNum">1</span>
+          <button id="nextPageBtn" onclick="changePage(1)" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition">
+            หน้าถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50">
+    <div class="glass max-w-2xl w-full rounded-3xl p-6 md:p-8 space-y-6 max-h-screen overflow-y-auto bg-white">
+      <div class="flex items-center justify-between border-b pb-4 border-gray-200">
+        <h3 class="text-xl font-black text-brand-700"><i class="fa-solid fa-address-card mr-2"></i>รายละเอียดผู้สมัคร</h3>
+        <button onclick="closeDetailModal()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold">✕</button>
+      </div>
+      <div id="modalContent" class="space-y-4 text-sm text-gray-700"></div>
+      <div class="text-right border-t pt-4 border-gray-200">
+        <button onclick="closeDetailModal()" class="px-5 py-2.5 rounded-2xl bg-gray-200 hover:bg-gray-300 font-bold text-gray-700 transition">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div id="customConfirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-60">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-4">
+      <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto">
+        <i class="fa-solid fa-user-check"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-black text-gray-800">ยืนยันการรับนักศึกษาฝึกงาน</h3>
+        <p class="text-sm text-gray-500 mt-1">ระบบจะส่งคำขออนุมัติไปยังอีเมลของผู้อนุมัติตามโครงสร้าง</p>
+      </div>
+      <div class="p-3 bg-blue-50 rounded-2xl text-xs text-blue-800 font-semibold text-left">
+        <div><i class="fa-solid fa-user-graduate mr-1.5"></i>นักศึกษา: <span id="confirmApplicantName" class="font-bold">-</span></div>
+        <div class="mt-1"><i class="fa-solid fa-paper-plane mr-1.5"></i>ผู้อนุมัติ: <span id="confirmApproverName" class="font-bold text-brand-700">-</span></div>
+      </div>
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <button onclick="closeConfirmModal()" class="w-1/2 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition">ยกเลิก</button>
+        <button id="btnConfirmClaimAction" onclick="executeClaimAction()" class="w-1/2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition">ยืนยันรับเรื่อง</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let currentUser = { username: '', role: 'user', fullName: 'ผู้ใช้งานทั่วไป (Guest)' };
+  let userDataList = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+  let targetClaimRow = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    try { 
+      const sessionUser = JSON.parse(sessionStorage.getItem('mitrpholCompanyUser') || 'null');
+      if (sessionUser) {
+        currentUser = sessionUser;
+      }
+    } catch(e) {}
+    
+    document.getElementById('userName').innerText = currentUser.fullName || currentUser.username || 'ผู้ใช้งานทั่วไป';
+    document.getElementById('userPosition').innerText = (currentUser.position || 'เจ้าหน้าที่') + (currentUser.companyName ? ' · ' + currentUser.companyName : '');
+    if (currentUser.role) {
+      document.getElementById('userRoleBadge').innerText = currentUser.role.toUpperCase();
+    }
+    
+    document.getElementById('userApprovalFilter').value = 'unassigned';
+    loadUserData();
+    loadUserQuota();
+  });
+
+  async function loadUserQuota() {
+    const userKey = currentUser.username || currentUser.email || '';
+    if (!userKey) return;
+
+    try {
+      const q = await callGasGet('getuserquota', { username: userKey });
+      if (!q) return;
+
+      document.getElementById('quotaApproved').innerText = q.approved;
+
+      const actEl = document.getElementById('quotaActual');
+      const boxAct = document.getElementById('boxActual');
+      const lblAct = document.getElementById('labelActual');
+      actEl.innerText = q.actual;
+
+      if (q.actual > 0) {
+        boxAct.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 min-w-[80px]";
+        lblAct.className = "block text-xs font-bold text-amber-800";
+        actEl.className = "text-2xl font-black text-amber-600";
+      } else {
+        boxAct.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 min-w-[80px]";
+        lblAct.className = "block text-xs font-bold text-gray-500";
+        actEl.className = "text-2xl font-black text-gray-500";
+      }
+
+      const remEl = document.getElementById('quotaRemaining');
+      const boxRem = document.getElementById('boxRemaining');
+      const lblRem = document.getElementById('labelRemaining');
+      remEl.innerText = q.remaining;
+
+      if (q.remaining < 0) {
+        boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-red-50 border border-red-300 shadow-sm min-w-[80px]";
+        lblRem.className = "block text-xs font-bold text-red-700";
+        remEl.className = "text-2xl font-black text-red-600";
+      } else if (q.remaining > 0) {
+        boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-300 min-w-[80px]";
+        lblRem.className = "block text-xs font-bold text-emerald-800";
+        remEl.className = "text-2xl font-black text-emerald-600";
+      } else {
+        boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 min-w-[80px]";
+        lblRem.className = "block text-xs font-bold text-gray-500";
+        remEl.className = "text-2xl font-black text-gray-600";
+      }
+    } catch (err) {
+      console.error("Quota Load Error:", err);
+    }
+  }
+
+  async function loadUserData() {
+    const tbody = document.getElementById('userTableBody');
+    tbody.innerHTML = `
+      <tr><td colspan="8" class="p-10 text-center text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+        <p>กำลังโหลดข้อมูลล่าสุด...</p>
+      </td></tr>`;
+
+    try {
+      const data = await callGasGet('getapplications', {
+        username: currentUser.username || '',
+        role: currentUser.role || 'user'
+      });
+      if (data && data.success === false) {
+        throw new Error(data.message);
+      }
+      renderUserData(data);
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-red-500 font-bold">ไม่สามารถดึงข้อมูลได้: ' + ((err && err.message) ? err.message : err) + '</td></tr>';
+    }
+  }
+
+  function renderUserData(data) {
+    userDataList = Array.isArray(data) ? data : [];
+    populateLocationDropdown();
+    updateSummaryCards();
+    filterUserTable();
+  }
+
+  function populateLocationDropdown() {
+    const locSelect = document.getElementById('userLocationFilter');
+    const currentVal = locSelect.value;
+    const locations = Array.from(new Set(userDataList.map(item => item.location).filter(Boolean))).sort();
+    
+    locSelect.innerHTML = '<option value="">ทั้งหมด</option>' + 
+      locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+    locSelect.value = currentVal;
+  }
+
+  function isMyApplication(item) {
+    if (!item.reviewerUsername || !currentUser) return false;
+    const rev = String(item.reviewerUsername).trim().toLowerCase();
+    const curU = String(currentUser.username || '').trim().toLowerCase();
+    const curId = String(currentUser.id || '').trim().toLowerCase();
+    const curEm = String(currentUser.email || '').trim().toLowerCase();
+    const curFull = String(currentUser.fullName || '').trim().toLowerCase();
+    
+    const cleanFull = curFull.replace(/^(นาย|นางสาว|น\.ส\.|นาง)\s*/, '');
+    const cleanRev = rev.replace(/^(นาย|นางสาว|น\.ส\.|นาง)\s*/, '');
+
+    return (
+      (curU && rev === curU) ||
+      (curId && rev === curId) ||
+      (curEm && rev === curEm) ||
+      (curFull && rev === curFull) ||
+      (cleanFull && cleanRev.includes(cleanFull)) ||
+      (cleanFull && cleanFull.includes(cleanRev))
+    );
+  }
+
+  function updateSummaryCards() {
+    const isAdmin = (currentUser && currentUser.role === 'admin');
+
+    const isReviewedStatus = (st) => {
+      const s = String(st || '').toLowerCase().trim();
+      return ['reviewed', 'approved', 'rejected', 'อนุมัติแล้ว', 'ไม่อนุมัติ'].includes(s);
+    };
+
+    const unassignedCount = userDataList.filter(x => {
+      const s = String(x.reviewStatus || x.status || '').toLowerCase().trim();
+      return (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง');
+    }).length;
+    document.getElementById('newAppsCount').innerText = unassignedCount;
+
+    const pendingCount = userDataList.filter(x => {
+      const s = String(x.reviewStatus || x.status || '').toLowerCase().trim();
+      return (s === 'pending' || s === 'รอการพิจารณา') && (isAdmin || isMyApplication(x));
+    }).length;
+    document.getElementById('pendingAppsCount').innerText = pendingCount;
+
+    const reviewedCount = userDataList.filter(x => 
+      isReviewedStatus(x.reviewStatus || x.status)
+    ).length;
+    document.getElementById('reviewedAppsCount').innerText = reviewedCount;
+
+    const allCount = userDataList.filter(x => {
+      const s = String(x.reviewStatus || x.status || '').toLowerCase().trim();
+      return isAdmin || (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง') || isMyApplication(x);
+    }).length;
+    const allEl = document.getElementById('allAppsCount');
+    if (allEl) allEl.innerText = allCount;
+  }
+
+  function selectCardFilter(type) {
+    const approvalSelect = document.getElementById('userApprovalFilter');
+    const tableTitle = document.getElementById('tableTitle');
+
+    if (type === 'unassigned') {
+      approvalSelect.value = 'unassigned';
+      tableTitle.innerText = 'รายการ นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)';
+    } else if (type === 'pending_approval') {
+      approvalSelect.value = 'pending_approval';
+      tableTitle.innerText = 'รายการผู้สมัครรอการพิจารณา';
+    } else if (type === 'reviewed') {
+      approvalSelect.value = 'reviewed';
+      tableTitle.innerText = 'รายการผู้สมัครที่พิจารณาแล้ว';
+    } else if (type === 'all') {
+      approvalSelect.value = 'all';
+      tableTitle.innerText = 'รายการผู้สมัครทั้งหมดที่เข้าถึงได้';
+    }
+
+    updateCardUI(type);
+    resetPageAndFilter();
+  }
+
+  function updateCardUI(type) {
+    ['cardNew', 'cardPending', 'cardReviewed', 'cardAll'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('card-active');
+    });
+
+    if (type === 'unassigned') document.getElementById('cardNew')?.classList.add('card-active');
+    else if (type === 'pending_approval') document.getElementById('cardPending')?.classList.add('card-active');
+    else if (type === 'reviewed') document.getElementById('cardReviewed')?.classList.add('card-active');
+    else if (type === 'all') document.getElementById('cardAll')?.classList.add('card-active');
+  }
+
+  function syncCardWithSelect() {
+    const val = document.getElementById('userApprovalFilter').value;
+    const tableTitle = document.getElementById('tableTitle');
+
+    if (val === 'unassigned') {
+      updateCardUI('unassigned');
+      tableTitle.innerText = 'รายการ นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)';
+    } else if (val === 'pending_approval') {
+      updateCardUI('pending_approval');
+      tableTitle.innerText = 'รายการผู้สมัครรอการพิจารณา';
+    } else if (val === 'reviewed') {
+      updateCardUI('reviewed');
+      tableTitle.innerText = 'รายการผู้สมัครที่พิจารณาแล้ว';
+    } else {
+      updateCardUI('all');
+      tableTitle.innerText = 'รายการผู้สมัคร';
+    }
+  }
+
+  function resetPageAndFilter() {
+    currentPage = 1;
+    filterUserTable();
+  }
+
+  function filterUserTable() {
+    const search = document.getElementById('userSearchInput').value.toLowerCase().trim();
+    const location = document.getElementById('userLocationFilter').value;
+    const unit = document.getElementById('userUnitFilter').value;
+    const approval = document.getElementById('userApprovalFilter').value;
+    const isAdmin = (currentUser && currentUser.role === 'admin');
+
+    const isReviewedStatus = (st) => {
+      const s = String(st || '').toLowerCase().trim();
+      return ['reviewed', 'approved', 'rejected', 'อนุมัติแล้ว', 'ไม่อนุมัติ'].includes(s);
+    };
+
+    const filtered = userDataList.filter(item => {
+      const matchSearch = !search ||
+        (item.fullName && item.fullName.toLowerCase().includes(search)) ||
+        (item.institution && item.institution.toLowerCase().includes(search)) ||
+        (item.major && item.major.toLowerCase().includes(search));
+      
+      const matchLocation = !location || item.location === location;
+      const matchUnit = !unit || item.workUnit === unit;
+
+      let matchApproval = true;
+      const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+
+      if (approval === 'unassigned') {
+        matchApproval = (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง');
+      } else if (approval === 'pending_approval') {
+        matchApproval = (s === 'pending' || s === 'รอการพิจารณา') && (isAdmin || isMyApplication(item));
+      } else if (approval === 'reviewed') {
+        matchApproval = isReviewedStatus(s);
+      } else if (approval === 'all') {
+        matchApproval = isAdmin || (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง') || isMyApplication(item);
+      }
+
+      return matchSearch && matchLocation && matchUnit && matchApproval;
+    });
+
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+    const pageItems = filtered.slice(startIndex, endIndex);
+
+    document.getElementById('pageInfoText').innerText = `แสดง ${totalItems > 0 ? startIndex + 1 : 0} ถึง ${endIndex} จาก ${totalItems} รายการ`;
+    document.getElementById('currentPageNum').innerText = currentPage;
+    document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+    document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+    const tbody = document.getElementById('userTableBody');
+    if (!pageItems.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-gray-400">ไม่พบข้อมูลที่ตรงตามเงื่อนไข</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = pageItems.map(item => {
+      const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+      const isPending = (s === 'pending' || s === 'รอการพิจารณา');
+      const isApproved = (s === 'reviewed' || s === 'approved' || s === 'อนุมัติแล้ว');
+      const isRejected = (s === 'rejected' || s === 'ไม่อนุมัติ');
+      const isMyClaim = isMyApplication(item);
+
+      let statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">ยังไม่มีผู้รับเรื่อง</span>`;
+      if (isApproved) {
+        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติแล้ว</span>`;
+      } else if (isRejected) {
+        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><i class="fa-solid fa-circle-xmark mr-1"></i>ไม่อนุมัติ</span>`;
+      } else if (isPending) {
+        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700"><i class="fa-solid fa-clock mr-1"></i>รอการพิจารณา</span>`;
+      }
+
+      let actionBtn = '';
+      if (!s || s === 'unassigned') {
+        actionBtn = `
+          <button onclick="openConfirmModal(${item.sheetRow})" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition">
+            <i class="fa-solid fa-user-plus mr-1"></i>รับ นศ. ฝึกงาน
+          </button>`;
+      } else if (isPending && (isMyClaim || (currentUser && currentUser.role === 'admin'))) {
+        actionBtn = `
+          <button onclick="userCancelClaim(${item.sheetRow})" class="px-3.5 py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 text-xs font-bold transition shadow-sm">
+            <i class="fa-solid fa-xmark mr-1"></i>ยกเลิก
+          </button>`;
+      } else if (isApproved) {
+        actionBtn = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 border border-green-200 cursor-not-allowed select-none"><i class="fa-solid fa-check mr-1"></i>อนุมัติแล้ว</span>`;
+      } else if (isRejected) {
+        actionBtn = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200 cursor-not-allowed select-none"><i class="fa-solid fa-xmark mr-1"></i>ไม่อนุมัติ</span>`;
+      } else {
+        actionBtn = `<span class="text-xs text-gray-400 font-medium">-</span>`;
+      }
+
+      const profileImg = item.profileImageLink 
+        ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover border border-gray-200 mx-auto shadow-sm" onerror="this.onerror=null; this.src='https://via.placeholder.com/40';">`
+        : `<div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto"><i class="fa-solid fa-user"></i></div>`;
+
+      const approverDisplayName = item.approverDisplayName || item.reviewerUsername || '-';
+
+      return `
+        <tr onclick="openDetailModal(${item.sheetRow})" class="hover:bg-blue-50 transition cursor-pointer">
+          <td class="p-4 text-center" onclick="event.stopPropagation()">${profileImg}</td>
+          <td class="p-4">
+            <div class="font-bold text-gray-800 hover:text-blue-600 transition">${item.fullName} ${item.nickName ? `(${item.nickName})` : ''}</div>
+            <div class="text-xs text-gray-400"><i class="fa-solid fa-phone mr-1"></i>${item.phone || '-'}</div>
+          </td>
+          <td class="p-4 text-xs font-semibold text-gray-700">${item.location || '-'}</td>
+          <td class="p-4"><div>${item.institution || '-'}</div><div class="text-xs text-gray-400">${item.degree || ''} ${item.major || ''}</div></td>
+          <td class="p-3.5 leading-tight">
+            <span class="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">
+              ${item.workUnit || '-'}
+            </span>
+            ${(item.selectedSection && item.selectedSection !== '-') ? `
+              <div class="text-xs font-semibold text-gray-600 mt-1 flex items-center gap-1.5">
+                <i class="fa-solid fa-turn-up rotate-90 text-xs text-blue-400"></i>
+                <span>${item.selectedSection}</span>
+              </div>` : ''}
+          </td>
+          <td class="p-4">${statusBadge}</td>
+          <td class="p-4 text-center font-bold text-gray-700 text-xs" onclick="event.stopPropagation()">${approverDisplayName}</td>
+          <td class="p-4 text-center" onclick="event.stopPropagation()">${actionBtn}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function changePage(direction) {
+    currentPage += direction;
+    filterUserTable();
+  }
+
+  function openConfirmModal(sheetRow) {
+    targetClaimRow = sheetRow;
+    const item = userDataList.find(x => x.sheetRow === sheetRow);
+    if (!item) return;
+
+    document.getElementById('confirmApplicantName').innerText = item.fullName + (item.nickName ? ` (${item.nickName})` : '');
+    document.getElementById('confirmApproverName').innerText = currentUser.approverName ? `${currentUser.approverName} (${currentUser.approverEmail})` : 'ตามโครงสร้างองค์กร';
+
+    document.getElementById('customConfirmModal').classList.remove('hidden');
+  }
+
+  function closeConfirmModal() {
+    targetClaimRow = null;
+    document.getElementById('customConfirmModal').classList.add('hidden');
+  }
+
+  async function executeClaimAction() {
+    if (!targetClaimRow) return;
+
+    const btn = document.getElementById('btnConfirmClaimAction');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังส่งเรื่อง...`;
+
+    try {
+      const r = await callGasPost('claim', {
+        rowId: targetClaimRow,
+        reviewerName: currentUser.username || 'User'
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      closeConfirmModal();
+
+      if (r && r.success) {
+        alert(r.message || 'รับเรื่องเรียบร้อยแล้ว');
+        loadUserData();
+        loadUserQuota();
+      } else {
+        alert((r && r.message) || 'ไม่สามารถรับเรื่องได้');
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      closeConfirmModal();
+      alert(err.message || err);
+    }
+  }
+
+  async function userCancelClaim(sheetRow) {
+    if (!confirm('คุณต้องการยกเลิกการรับนักศึกษาฝึกงานรายการนี้ใช่หรือไม่?')) return;
+
+    try {
+      const r = await callGasPost('usercancelclaim', {
+        rowId: sheetRow,
+        username: currentUser.username || 'User'
+      });
+
+      if (r && r.success) {
+        alert(r.message || 'ยกเลิกเรียบร้อยแล้ว');
+        loadUserData();
+        loadUserQuota();
+      } else {
+        alert((r && r.message) || 'ไม่สามารถยกเลิกได้');
+      }
+    } catch (err) {
+      alert(err.message || err);
+    }
+  }
+
+  function openDetailModal(sheetRow) {
+    const item = userDataList.find(x => x.sheetRow === sheetRow);
+    if (!item) return;
+
+    let fileLinksHtml = '<span class="text-gray-400">ไม่มีไฟล์แนบ</span>';
+    if (item.fileLinks && item.fileLinks.trim() !== '') {
+      const lines = item.fileLinks.split('\n');
+      fileLinksHtml = lines.map(line => {
+        const parts = line.split(': http');
+        if (parts.length >= 2) {
+          const title = parts[0].trim();
+          const url = 'http' + parts.slice(1).join(': http').trim();
+          return `<a href="${url}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 transition mr-2 mb-2"><i class="fa-solid fa-file-lines"></i> ${title}</a>`;
+        }
+        return `<a href="${line}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 transition mr-2 mb-2"><i class="fa-solid fa-paperclip"></i> เอกสาร</a>`;
+      }).join('');
+    }
+
+    const content = `
+      <div class="flex items-center gap-5 bg-blue-50 p-4 sm:p-5 rounded-2xl">
+        ${item.profileImageLink 
+          ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-blue-500 shadow-md shrink-0">`
+          : `<div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-4xl shrink-0"><i class="fa-solid fa-user"></i></div>`
+        }
+        <div>
+          <h4 class="text-xl font-black text-gray-800">${item.fullName} (${item.nickName || '-'})</h4>
+          <p class="text-sm text-blue-700 font-semibold">${item.institution || '-'} · ${item.major || '-'}</p>
+          <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>${item.location || '-'}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>เบอร์โทรศัพท์:</strong> ${item.phone || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>Line ID:</strong> ${item.lineId || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>อีเมลนักศึกษา:</strong> ${item.emailStudent || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>อีเมลสถาบัน:</strong> ${item.emailInst || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>ระดับการศึกษา:</strong> ${item.degree || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>หน่วยงานที่ขอฝึกงาน:</strong> ${item.workUnit || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>ช่วงเวลาฝึกงาน:</strong> ${item.startDate || '-'} ถึง ${item.endDate || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>อนุมัติโดย:</strong> ${item.approverDisplayName || item.reviewerUsername || 'ยังไม่มีผู้รับเรื่อง'}</div>
+      </div>
+
+      <div class="p-3 bg-gray-50 rounded-xl text-xs space-y-1">
+        <div><strong>ที่อยู่:</strong> ${item.address || '-'}</div>
+        <div><strong>ทักษะ/ความสามารถ:</strong> ${item.skills || '-'}</div>
+        <div><strong>ผู้ติดต่อฉุกเฉิน:</strong> ${item.emergencyName || '-'} (${item.emergencyPhone || '-'})</div>
+      </div>
+
+      <div class="p-3 bg-gray-50 rounded-xl text-xs">
+        <div class="font-bold mb-2 text-gray-600">เอกสารแนบประกอบการสมัคร:</div>
+        <div>${fileLinksHtml}</div>
+      </div>
+    `;
+
+    document.getElementById('modalContent').innerHTML = content;
+    document.getElementById('detailModal').classList.remove('hidden');
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detailModal').classList.add('hidden');
+  }
+
+  function userLogout() {
+    sessionStorage.removeItem('mitrpholCompanyUser');
+    window.location.href = 'index.html';
+  }
+</script>
+</body>
+</html>
