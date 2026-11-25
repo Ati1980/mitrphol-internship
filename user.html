@@ -4,7 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>User Dashboard - Mitr Phol Internship</title>
+  <link rel="preload" as="image" href="/assets/aistudio/blue-office-stationery-set-with-laptop_e219bbe5.jpg">
   <script src="api-config.js"></script>
+  <script>
+    (function () {
+      try {
+        sessionStorage.setItem('mitrpholActiveView', 'user');
+        localStorage.setItem('mitrpholActiveView', 'user');
+        const u = JSON.parse(sessionStorage.getItem('mitrpholCompanyUser') || localStorage.getItem('mitrpholCompanyUser') || 'null');
+        if (u) {
+          sessionStorage.setItem('mitrpholCompanyUser', JSON.stringify(u));
+          localStorage.setItem('mitrpholCompanyUser', JSON.stringify(u));
+        }
+        window.__bootUser = u;
+        window.__initialUserAppsPromise = callGasGet('getapplications', {
+          username: (u && u.username) ? u.username : '',
+          role: (u && u.role) ? u.role : 'user'
+        });
+        const userKey = (u && (u.username || u.email)) ? (u.username || u.email) : '';
+        if (userKey) {
+          window.__initialUserQuotaPromise = callGasGet('getuserquota', { username: userKey });
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -13,10 +36,12 @@
     .hidden { display: none !important; }
     body {
       font-family: 'Kanit', Arial, sans-serif;
-      background:
-        radial-gradient(circle at 15% 10%, rgba(22,133,230,.20), transparent 30%),
-        radial-gradient(circle at 85% 15%, rgba(0,82,155,.16), transparent 28%),
-        linear-gradient(135deg,#eef7ff 0%,#f8fbff 48%,#e7f2ff 100%);
+      background-color: #dbeeff;
+      background-image: linear-gradient(135deg, rgba(238, 247, 255, 0.22) 0%, rgba(231, 242, 255, 0.16) 100%), url('/assets/aistudio/blue-office-stationery-set-with-laptop_e219bbe5.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
       min-height: 100vh;
     }
     .glass {
@@ -26,9 +51,67 @@
       -webkit-backdrop-filter: blur(20px);
       box-shadow: 0 18px 50px -20px rgba(0, 82, 155, 0.2);
     }
-    .card-active {
-      border: 2px solid #1685e6 !important;
-      background: rgba(22, 133, 230, 0.08) !important;
+    .stat-glass-card {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.58) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.88);
+      border-radius: 18px;
+      padding: 0.72rem 0.95rem;
+      backdrop-filter: blur(22px) saturate(165%);
+      -webkit-backdrop-filter: blur(22px) saturate(165%);
+      box-shadow: 0 10px 26px -14px rgba(0, 82, 155, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    }
+    .stat-glass-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(125deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.05) 48%, transparent 72%);
+      pointer-events: none;
+    }
+    .stat-glass-card > * {
+      position: relative;
+      z-index: 1;
+    }
+    .stat-glass-card:hover {
+      transform: translateY(-3px);
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.72) 100%);
+      box-shadow: 0 16px 32px -14px rgba(22, 133, 230, 0.28), inset 0 1px 0 rgba(255, 255, 255, 1);
+    }
+    .stat-glass-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .stat-glass-card:hover .stat-glass-icon {
+      transform: scale(1.07);
+    }
+    .stat-glass-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: #475569;
+    }
+    .stat-glass-value {
+      font-size: 1.4rem;
+      line-height: 1.15;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .stat-glass-card.card-active {
+      border-color: var(--active-border, rgba(22, 133, 230, 0.72)) !important;
+      background: var(--active-bg, linear-gradient(145deg, rgba(240, 249, 255, 0.92) 0%, rgba(224, 242, 254, 0.76) 100%)) !important;
+      box-shadow: 0 14px 28px -10px var(--active-glow, rgba(2, 132, 199, 0.36)), inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+      transform: translateY(-2px);
     }
     .bg-brand-50 { background-color: #eff7ff; }
     .bg-brand-100 { background-color: #dbeeff; }
@@ -37,6 +120,12 @@
     .text-brand-700 { color: #00529b; }
     .hover\:bg-brand-700:hover { background-color: #00529b; }
     .hover\:bg-brand-100:hover { background-color: #dbeeff; }
+    .modern-table-row {
+      transition: background-color 0.18s ease;
+    }
+    .modern-table-row:hover {
+      background-color: rgba(239, 246, 255, 0.72);
+    }
   </style>
 </head>
 <body class="text-gray-800 pb-16">
@@ -94,44 +183,44 @@
     </section>
 
     <!-- Summary Cards -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-      <div id="cardNew" onclick="selectCardFilter('unassigned')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition card-active">
-        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mt-5">
+      <div id="cardNew" onclick="selectCardFilter('unassigned')" class="stat-glass-card flex items-center gap-3 cursor-pointer card-active" style="--active-border: rgba(14, 165, 233, 0.72); --active-bg: linear-gradient(145deg, rgba(240, 249, 255, 0.92) 0%, rgba(224, 242, 254, 0.76) 100%); --active-glow: rgba(2, 132, 199, 0.36);">
+        <div class="stat-glass-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); box-shadow: 0 6px 14px -4px rgba(14, 165, 233, 0.45);">
           <i class="fa-solid fa-user-plus"></i>
         </div>
-        <div>
-          <p class="text-sm font-bold text-gray-600">นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)</p>
-          <h3 class="text-3xl font-black text-blue-600" id="newAppsCount">0</h3>
+        <div class="min-w-0">
+          <p class="stat-glass-label truncate" style="color: #0369a1;">นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)</p>
+          <h3 class="stat-glass-value" style="color: #0284c7;" id="newAppsCount">0</h3>
         </div>
       </div>
 
-      <div id="cardPending" onclick="selectCardFilter('pending_approval')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition">
-        <div class="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-xl shrink-0">
+      <div id="cardPending" onclick="selectCardFilter('pending_approval')" class="stat-glass-card flex items-center gap-3 cursor-pointer" style="--active-border: rgba(245, 158, 11, 0.75); --active-bg: linear-gradient(145deg, rgba(255, 251, 235, 0.94) 0%, rgba(254, 243, 199, 0.78) 100%); --active-glow: rgba(217, 119, 6, 0.34);">
+        <div class="stat-glass-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%); box-shadow: 0 6px 14px -4px rgba(245, 158, 11, 0.45);">
           <i class="fa-solid fa-clock-rotate-left"></i>
         </div>
-        <div>
-          <p class="text-sm font-bold text-gray-600">รอการพิจารณา</p>
-          <h3 class="text-3xl font-black text-yellow-600" id="pendingAppsCount">0</h3>
+        <div class="min-w-0">
+          <p class="stat-glass-label truncate" style="color: #92400e;">รอการพิจารณา</p>
+          <h3 class="stat-glass-value" style="color: #d97706;" id="pendingAppsCount">0</h3>
         </div>
       </div>
 
-      <div id="cardReviewed" onclick="selectCardFilter('reviewed')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition">
-        <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center text-xl shrink-0">
+      <div id="cardReviewed" onclick="selectCardFilter('reviewed')" class="stat-glass-card flex items-center gap-3 cursor-pointer" style="--active-border: rgba(16, 185, 129, 0.72); --active-bg: linear-gradient(145deg, rgba(236, 253, 245, 0.94) 0%, rgba(209, 250, 229, 0.78) 100%); --active-glow: rgba(5, 150, 105, 0.34);">
+        <div class="stat-glass-icon" style="background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); box-shadow: 0 6px 14px -4px rgba(16, 185, 129, 0.45);">
           <i class="fa-solid fa-building-circle-check"></i>
         </div>
-        <div>
-          <p class="text-sm font-bold text-gray-600">พิจารณาแล้ว</p>
-          <h3 class="text-3xl font-black text-green-600" id="reviewedAppsCount">0</h3>
+        <div class="min-w-0">
+          <p class="stat-glass-label truncate" style="color: #065f46;">พิจารณาแล้ว</p>
+          <h3 class="stat-glass-value" style="color: #059669;" id="reviewedAppsCount">0</h3>
         </div>
       </div>
 
-      <div id="cardAll" onclick="selectCardFilter('all')" class="glass rounded-3xl p-5 flex items-center gap-4 cursor-pointer hover:border-blue-300 transition">
-        <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+      <div id="cardAll" onclick="selectCardFilter('all')" class="stat-glass-card flex items-center gap-3 cursor-pointer" style="--active-border: rgba(139, 92, 246, 0.72); --active-bg: linear-gradient(145deg, rgba(245, 243, 255, 0.94) 0%, rgba(237, 233, 254, 0.78) 100%); --active-glow: rgba(124, 58, 237, 0.34);">
+        <div class="stat-glass-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); box-shadow: 0 6px 14px -4px rgba(139, 92, 246, 0.45);">
           <i class="fa-solid fa-list-check"></i>
         </div>
-        <div>
-          <p class="text-sm font-bold text-gray-600">ทั้งหมดที่เข้าถึงได้</p>
-          <h3 class="text-3xl font-black text-purple-600" id="allAppsCount">0</h3>
+        <div class="min-w-0">
+          <p class="stat-glass-label truncate" style="color: #5b21b6;">ทั้งหมดที่เข้าถึงได้</p>
+          <h3 class="stat-glass-value" style="color: #7c3aed;" id="allAppsCount">0</h3>
         </div>
       </div>
     </section>
@@ -143,13 +232,13 @@
           <h2 class="text-xl font-black text-gray-800" id="tableTitle">รายการ นศ.ฝึกงานใหม่ (ยังไม่ถูกเลือก)</h2>
           <p class="text-xs text-gray-500">คลิกที่ Card ด้านบนเพื่อกรอง หรือค้นหาจากแบบฟอร์มด้านล่าง</p>
         </div>
-        <button onclick="loadUserData()" class="px-4 py-2 rounded-2xl bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 transition flex items-center gap-2 text-sm">
+        <button onclick="loadUserData(true)" class="px-4 py-2 rounded-2xl bg-brand-50 text-brand-700 font-bold hover:bg-brand-100 transition flex items-center gap-2 text-sm">
           <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
         </button>
       </div>
 
       <!-- Filters -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         <div>
           <label class="block text-xs font-semibold mb-1 text-gray-500">ค้นหาชื่อ/สถาบัน/สาขา</label>
           <input type="text" id="userSearchInput" oninput="resetPageAndFilter()" placeholder="พิมพ์คำค้นหา..." class="w-full p-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm focus:ring-2 focus:ring-blue-500">
@@ -170,6 +259,12 @@
           </select>
         </div>
         <div>
+          <label class="block text-xs font-semibold mb-1 text-gray-500">แผนก</label>
+          <select id="userSectionFilter" onchange="resetPageAndFilter()" class="w-full p-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div>
           <label class="block text-xs font-semibold mb-1 text-gray-500">สถานะการอนุมัติ</label>
           <select id="userApprovalFilter" onchange="syncCardWithSelect(); resetPageAndFilter();" class="w-full p-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm focus:ring-2 focus:ring-blue-500">
             <option value="unassigned">นศ. เข้ามาใหม่ (ยังไม่ถูกเลือก)</option>
@@ -181,18 +276,18 @@
       </div>
 
       <!-- Table Body -->
-      <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+      <div class="overflow-x-auto rounded-2xl border bg-white shadow-sm" style="border-color: #e2e8f0;">
         <table class="w-full text-left text-sm">
-          <thead class="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+          <thead class="text-xs font-bold border-b" style="background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); color: #475569; border-color: #e2e8f0;">
             <tr>
-              <th class="p-4 text-center">รูป</th>
-              <th class="p-4">ผู้สมัคร</th>
-              <th class="p-4">สถานที่</th>
-              <th class="p-4">สถาบัน/สาขา</th>
-              <th class="p-4">หน่วยงานที่ขอ</th>
-              <th class="p-4">สถานะ</th>
-              <th class="p-4 text-center">อนุมัติโดย</th>
-              <th class="p-4 text-center">การจัดการ</th>
+              <th class="py-3.5 px-3 text-center whitespace-nowrap">รูป</th>
+              <th class="py-3.5 px-3 whitespace-nowrap">ผู้สมัคร</th>
+              <th class="py-3.5 px-3 whitespace-nowrap">สถานที่</th>
+              <th class="py-3.5 px-3 whitespace-nowrap">สถาบัน/สาขา</th>
+              <th class="py-3.5 px-3 whitespace-nowrap">หน่วยงานที่ขอ</th>
+              <th class="py-3.5 px-3 text-center whitespace-nowrap">สถานะ</th>
+              <th class="py-3.5 px-3 text-center whitespace-nowrap">อนุมัติโดย</th>
+              <th class="py-3.5 px-3 text-center whitespace-nowrap">การจัดการ</th>
             </tr>
           </thead>
           <tbody id="userTableBody" class="divide-y divide-gray-100">
@@ -266,7 +361,8 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     try { 
-      const sessionUser = JSON.parse(sessionStorage.getItem('mitrpholCompanyUser') || 'null');
+      const sessionUser = window.__bootUser
+        || JSON.parse(sessionStorage.getItem('mitrpholCompanyUser') || localStorage.getItem('mitrpholCompanyUser') || 'null');
       if (sessionUser) {
         currentUser = sessionUser;
       }
@@ -279,83 +375,125 @@
     }
     
     document.getElementById('userApprovalFilter').value = 'unassigned';
-    loadUserData();
-    loadUserQuota();
+    loadUserData(false);
+    loadUserQuota(false);
   });
 
-  async function loadUserQuota() {
+  function applyQuotaUI(q) {
+    if (!q) return;
+    document.getElementById('quotaApproved').innerText = q.approved;
+
+    const actEl = document.getElementById('quotaActual');
+    const boxAct = document.getElementById('boxActual');
+    const lblAct = document.getElementById('labelActual');
+    actEl.innerText = q.actual;
+
+    if (q.actual > 0) {
+      boxAct.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 min-w-[80px]";
+      lblAct.className = "block text-xs font-bold text-amber-800";
+      actEl.className = "text-2xl font-black text-amber-600";
+    } else {
+      boxAct.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 min-w-[80px]";
+      lblAct.className = "block text-xs font-bold text-gray-500";
+      actEl.className = "text-2xl font-black text-gray-500";
+    }
+
+    const remEl = document.getElementById('quotaRemaining');
+    const boxRem = document.getElementById('boxRemaining');
+    const lblRem = document.getElementById('labelRemaining');
+    remEl.innerText = q.remaining;
+
+    if (q.remaining < 0) {
+      boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-red-50 border border-red-300 shadow-sm min-w-[80px]";
+      lblRem.className = "block text-xs font-bold text-red-700";
+      remEl.className = "text-2xl font-black text-red-600";
+    } else if (q.remaining > 0) {
+      boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-300 min-w-[80px]";
+      lblRem.className = "block text-xs font-bold text-emerald-800";
+      remEl.className = "text-2xl font-black text-emerald-600";
+    } else {
+      boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 min-w-[80px]";
+      lblRem.className = "block text-xs font-bold text-gray-500";
+      remEl.className = "text-2xl font-black text-gray-600";
+    }
+  }
+
+  async function loadUserQuota(forceFresh = false) {
     const userKey = currentUser.username || currentUser.email || '';
     if (!userKey) return;
+    const cacheKey = `mitrpholUserQuotaCache_${userKey}`;
+
+    if (!forceFresh) {
+      try {
+        const cachedQuota = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (cachedQuota) applyQuotaUI(cachedQuota);
+      } catch (e) {}
+    }
 
     try {
-      const q = await callGasGet('getuserquota', { username: userKey });
+      const pendingPromise = (!forceFresh && window.__initialUserQuotaPromise)
+        ? window.__initialUserQuotaPromise
+        : callGasGet('getuserquota', { username: userKey }, { fresh: forceFresh });
+      window.__initialUserQuotaPromise = null;
+
+      const q = await pendingPromise;
       if (!q) return;
-
-      document.getElementById('quotaApproved').innerText = q.approved;
-
-      const actEl = document.getElementById('quotaActual');
-      const boxAct = document.getElementById('boxActual');
-      const lblAct = document.getElementById('labelActual');
-      actEl.innerText = q.actual;
-
-      if (q.actual > 0) {
-        boxAct.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 min-w-[80px]";
-        lblAct.className = "block text-xs font-bold text-amber-800";
-        actEl.className = "text-2xl font-black text-amber-600";
-      } else {
-        boxAct.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 min-w-[80px]";
-        lblAct.className = "block text-xs font-bold text-gray-500";
-        actEl.className = "text-2xl font-black text-gray-500";
-      }
-
-      const remEl = document.getElementById('quotaRemaining');
-      const boxRem = document.getElementById('boxRemaining');
-      const lblRem = document.getElementById('labelRemaining');
-      remEl.innerText = q.remaining;
-
-      if (q.remaining < 0) {
-        boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-red-50 border border-red-300 shadow-sm min-w-[80px]";
-        lblRem.className = "block text-xs font-bold text-red-700";
-        remEl.className = "text-2xl font-black text-red-600";
-      } else if (q.remaining > 0) {
-        boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-300 min-w-[80px]";
-        lblRem.className = "block text-xs font-bold text-emerald-800";
-        remEl.className = "text-2xl font-black text-emerald-600";
-      } else {
-        boxRem.className = "flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 min-w-[80px]";
-        lblRem.className = "block text-xs font-bold text-gray-500";
-        remEl.className = "text-2xl font-black text-gray-600";
-      }
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(q)); } catch (e) {}
+      applyQuotaUI(q);
     } catch (err) {
       console.error("Quota Load Error:", err);
     }
   }
 
-  async function loadUserData() {
+  async function loadUserData(forceFresh = false) {
     const tbody = document.getElementById('userTableBody');
-    tbody.innerHTML = `
-      <tr><td colspan="8" class="p-10 text-center text-gray-400">
-        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
-        <p>กำลังโหลดข้อมูลล่าสุด...</p>
-      </td></tr>`;
+    const cacheKey = `mitrpholUserAppsCache_${currentUser.username || 'guest'}_${currentUser.role || 'user'}`;
+    let hasCached = false;
+
+    if (!forceFresh) {
+      try {
+        const cachedData = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (Array.isArray(cachedData)) {
+          hasCached = true;
+          renderUserData(cachedData);
+        }
+      } catch (e) {}
+    }
+
+    if (!hasCached) {
+      tbody.innerHTML = `
+        <tr><td colspan="8" class="p-10 text-center text-gray-400">
+          <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+          <p>กำลังโหลดข้อมูลล่าสุด...</p>
+        </td></tr>`;
+    }
 
     try {
-      const data = await callGasGet('getapplications', {
-        username: currentUser.username || '',
-        role: currentUser.role || 'user'
-      });
+      const pendingPromise = (!forceFresh && window.__initialUserAppsPromise)
+        ? window.__initialUserAppsPromise
+        : callGasGet('getapplications', {
+            username: currentUser.username || '',
+            role: currentUser.role || 'user'
+          }, { fresh: forceFresh });
+      window.__initialUserAppsPromise = null;
+
+      const data = await pendingPromise;
       if (data && data.success === false) {
         throw new Error(data.message);
       }
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(data || [])); } catch (e) {}
       renderUserData(data);
     } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-red-500 font-bold">ไม่สามารถดึงข้อมูลได้: ' + ((err && err.message) ? err.message : err) + '</td></tr>';
+      if (!hasCached) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-red-500 font-bold">ไม่สามารถดึงข้อมูลได้: ' + ((err && err.message) ? err.message : err) + '</td></tr>';
+      }
     }
   }
 
   function renderUserData(data) {
     userDataList = Array.isArray(data) ? data : [];
     populateLocationDropdown();
+    populateSectionDropdown();
     updateSummaryCards();
     filterUserTable();
   }
@@ -368,6 +506,22 @@
     locSelect.innerHTML = '<option value="">ทั้งหมด</option>' + 
       locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
     locSelect.value = currentVal;
+  }
+
+  function populateSectionDropdown() {
+    const secSelect = document.getElementById('userSectionFilter');
+    if (!secSelect) return;
+    const currentVal = secSelect.value;
+    const sections = Array.from(new Set(
+      userDataList
+        .map(item => (item.selectedSection && item.selectedSection !== '-') ? String(item.selectedSection).trim() : '')
+        .filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b, 'th'));
+
+    secSelect.innerHTML = '<option value="">ทั้งหมด</option>' +
+      sections.map(sec => `<option value="${sec}">${sec}</option>`).join('') +
+      '<option value="__unassigned__">ยังไม่ระบุแผนก</option>';
+    secSelect.value = currentVal;
   }
 
   function isMyApplication(item) {
@@ -486,6 +640,7 @@
     const search = document.getElementById('userSearchInput').value.toLowerCase().trim();
     const location = document.getElementById('userLocationFilter').value;
     const unit = document.getElementById('userUnitFilter').value;
+    const section = document.getElementById('userSectionFilter')?.value || '';
     const approval = document.getElementById('userApprovalFilter').value;
     const isAdmin = (currentUser && currentUser.role === 'admin');
 
@@ -502,6 +657,8 @@
       
       const matchLocation = !location || item.location === location;
       const matchUnit = !unit || item.workUnit === unit;
+      const itemSection = (item.selectedSection && item.selectedSection !== '-') ? String(item.selectedSection).trim() : '';
+      const matchSection = !section || (section === '__unassigned__' ? !itemSection : itemSection === section);
 
       let matchApproval = true;
       const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
@@ -516,7 +673,7 @@
         matchApproval = isAdmin || (!s || s === 'unassigned' || s === 'ยังไม่มีผู้รับเรื่อง') || isMyApplication(item);
       }
 
-      return matchSearch && matchLocation && matchUnit && matchApproval;
+      return matchSearch && matchLocation && matchUnit && matchSection && matchApproval;
     });
 
     const totalItems = filtered.length;
@@ -545,51 +702,54 @@
       const isRejected = (s === 'rejected' || s === 'ไม่อนุมัติ');
       const isMyClaim = isMyApplication(item);
 
-      let statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">ยังไม่มีผู้รับเรื่อง</span>`;
+      let statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;"><span class="w-1.5 h-1.5 rounded-full" style="background: #94a3b8;"></span>ยังไม่มีผู้รับเรื่อง</span>`;
       if (isApproved) {
-        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติแล้ว</span>`;
+        statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;"><i class="fa-solid fa-circle-check"></i>อนุมัติแล้ว</span>`;
       } else if (isRejected) {
-        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><i class="fa-solid fa-circle-xmark mr-1"></i>ไม่อนุมัติ</span>`;
+        statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style="background: #fff1f2; color: #be123c; border: 1px solid #fecdd3;"><i class="fa-solid fa-circle-xmark"></i>ไม่อนุมัติ</span>`;
       } else if (isPending) {
-        statusBadge = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700"><i class="fa-solid fa-clock mr-1"></i>รอการพิจารณา</span>`;
+        statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a;"><i class="fa-solid fa-clock"></i>รอการพิจารณา</span>`;
       }
 
       let actionBtn = '';
       if (!s || s === 'unassigned') {
         actionBtn = `
-          <button onclick="openConfirmModal(${item.sheetRow})" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition">
-            <i class="fa-solid fa-user-plus mr-1"></i>รับ นศ. ฝึกงาน
+          <button onclick="openConfirmModal(${item.sheetRow})" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white text-xs font-bold shadow-sm transition whitespace-nowrap hover:opacity-95" style="background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);">
+            <i class="fa-solid fa-user-plus"></i>รับ นศ. ฝึกงาน
           </button>`;
       } else if (isPending && (isMyClaim || (currentUser && currentUser.role === 'admin'))) {
         actionBtn = `
-          <button onclick="userCancelClaim(${item.sheetRow})" class="px-3.5 py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 text-xs font-bold transition shadow-sm">
-            <i class="fa-solid fa-xmark mr-1"></i>ยกเลิก
+          <button onclick="userCancelClaim(${item.sheetRow})" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-sm whitespace-nowrap" style="background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;">
+            <i class="fa-solid fa-xmark"></i>ยกเลิก
           </button>`;
       } else if (isApproved) {
-        actionBtn = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 border border-green-200 cursor-not-allowed select-none"><i class="fa-solid fa-check mr-1"></i>อนุมัติแล้ว</span>`;
+        actionBtn = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap cursor-default select-none" style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;"><i class="fa-solid fa-check"></i>อนุมัติแล้ว</span>`;
       } else if (isRejected) {
-        actionBtn = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200 cursor-not-allowed select-none"><i class="fa-solid fa-xmark mr-1"></i>ไม่อนุมัติ</span>`;
+        actionBtn = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap cursor-default select-none" style="background: #fff1f2; color: #be123c; border: 1px solid #fecdd3;"><i class="fa-solid fa-xmark"></i>ไม่อนุมัติ</span>`;
       } else {
         actionBtn = `<span class="text-xs text-gray-400 font-medium">-</span>`;
       }
 
       const profileImg = item.profileImageLink 
-        ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover border border-gray-200 mx-auto shadow-sm" onerror="this.onerror=null; this.src='https://via.placeholder.com/40';">`
+        ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover border-2 mx-auto shadow-sm" style="border-color: #e0f2fe;" onerror="this.onerror=null; this.src='https://via.placeholder.com/40';">`
         : `<div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto"><i class="fa-solid fa-user"></i></div>`;
 
       const approverDisplayName = item.approverDisplayName || item.reviewerUsername || '-';
 
       return `
-        <tr onclick="openDetailModal(${item.sheetRow})" class="hover:bg-blue-50 transition cursor-pointer">
-          <td class="p-4 text-center" onclick="event.stopPropagation()">${profileImg}</td>
-          <td class="p-4">
-            <div class="font-bold text-gray-800 hover:text-blue-600 transition">${item.fullName} ${item.nickName ? `(${item.nickName})` : ''}</div>
-            <div class="text-xs text-gray-400"><i class="fa-solid fa-phone mr-1"></i>${item.phone || '-'}</div>
+        <tr onclick="openDetailModal(${item.sheetRow})" class="modern-table-row cursor-pointer">
+          <td class="py-3.5 px-3 text-center align-middle">${profileImg}</td>
+          <td class="py-3.5 px-3 align-middle" style="min-width: 170px;">
+            <div class="font-bold text-gray-800 hover:text-blue-600 transition leading-snug">${item.fullName} ${item.nickName ? `(${item.nickName})` : ''}</div>
+            <div class="text-xs mt-0.5" style="color: #64748b;"><i class="fa-solid fa-phone mr-1 text-[10px]"></i>${formatThaiPhone(item.phone)}</div>
           </td>
-          <td class="p-4 text-xs font-semibold text-gray-700">${item.location || '-'}</td>
-          <td class="p-4"><div>${item.institution || '-'}</div><div class="text-xs text-gray-400">${item.degree || ''} ${item.major || ''}</div></td>
-          <td class="p-3.5 leading-tight">
-            <span class="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">
+          <td class="py-3.5 px-3 align-middle text-xs font-semibold text-gray-700" style="min-width: 145px;">${item.location || '-'}</td>
+          <td class="py-3.5 px-3 align-middle" style="min-width: 175px;">
+            <div class="font-medium text-gray-800 leading-snug">${item.institution || '-'}</div>
+            <div class="text-xs mt-0.5" style="color: #64748b;">${item.degree || ''} ${item.major || ''}</div>
+          </td>
+          <td class="py-3.5 px-3 align-middle leading-tight whitespace-nowrap">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe;">
               ${item.workUnit || '-'}
             </span>
             ${(item.selectedSection && item.selectedSection !== '-') ? `
@@ -598,9 +758,9 @@
                 <span>${item.selectedSection}</span>
               </div>` : ''}
           </td>
-          <td class="p-4">${statusBadge}</td>
-          <td class="p-4 text-center font-bold text-gray-700 text-xs" onclick="event.stopPropagation()">${approverDisplayName}</td>
-          <td class="p-4 text-center" onclick="event.stopPropagation()">${actionBtn}</td>
+          <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap">${statusBadge}</td>
+          <td class="py-3.5 px-3 text-center align-middle font-bold text-gray-700 text-xs" style="min-width: 120px;" onclick="event.stopPropagation()">${approverDisplayName}</td>
+          <td class="py-3.5 px-3 text-center align-middle whitespace-nowrap" onclick="event.stopPropagation()">${actionBtn}</td>
         </tr>
       `;
     }).join('');
@@ -647,8 +807,8 @@
 
       if (r && r.success) {
         alert(r.message || 'รับเรื่องเรียบร้อยแล้ว');
-        loadUserData();
-        loadUserQuota();
+        loadUserData(true);
+        loadUserQuota(true);
       } else {
         alert((r && r.message) || 'ไม่สามารถรับเรื่องได้');
       }
@@ -671,8 +831,8 @@
 
       if (r && r.success) {
         alert(r.message || 'ยกเลิกเรียบร้อยแล้ว');
-        loadUserData();
-        loadUserQuota();
+        loadUserData(true);
+        loadUserQuota(true);
       } else {
         alert((r && r.message) || 'ไม่สามารถยกเลิกได้');
       }
@@ -713,7 +873,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-        <div class="p-3 bg-gray-50 rounded-xl"><strong>เบอร์โทรศัพท์:</strong> ${item.phone || '-'}</div>
+        <div class="p-3 bg-gray-50 rounded-xl"><strong>เบอร์โทรศัพท์:</strong> ${formatThaiPhone(item.phone)}</div>
         <div class="p-3 bg-gray-50 rounded-xl"><strong>Line ID:</strong> ${item.lineId || '-'}</div>
         <div class="p-3 bg-gray-50 rounded-xl"><strong>อีเมลนักศึกษา:</strong> ${item.emailStudent || '-'}</div>
         <div class="p-3 bg-gray-50 rounded-xl"><strong>อีเมลสถาบัน:</strong> ${item.emailInst || '-'}</div>
@@ -726,7 +886,7 @@
       <div class="p-3 bg-gray-50 rounded-xl text-xs space-y-1">
         <div><strong>ที่อยู่:</strong> ${item.address || '-'}</div>
         <div><strong>ทักษะ/ความสามารถ:</strong> ${item.skills || '-'}</div>
-        <div><strong>ผู้ติดต่อฉุกเฉิน:</strong> ${item.emergencyName || '-'} (${item.emergencyPhone || '-'})</div>
+        <div><strong>ผู้ติดต่อฉุกเฉิน:</strong> ${item.emergencyName || '-'} (${formatThaiPhone(item.emergencyPhone)})</div>
       </div>
 
       <div class="p-3 bg-gray-50 rounded-xl text-xs">
@@ -745,7 +905,10 @@
 
   function userLogout() {
     sessionStorage.removeItem('mitrpholCompanyUser');
-    window.location.href = 'index.html';
+    localStorage.removeItem('mitrpholCompanyUser');
+    sessionStorage.removeItem('mitrpholActiveView');
+    localStorage.removeItem('mitrpholActiveView');
+    window.location.replace('index.html?student=1');
   }
 </script>
 </body>

@@ -4,6 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบขอฝึกงาน - กลุ่มมิตรผล</title>
+  <link rel="preload" as="image" href="/assets/aistudio/blue-office-stationery-set-with-laptop_e219bbe5.jpg">
+  <link rel="prefetch" href="admin.html">
+  <link rel="prefetch" href="user.html">
+  <script>
+    (function () {
+      try {
+        if (new URLSearchParams(window.location.search).has('student')) return;
+        const activeView = sessionStorage.getItem('mitrpholActiveView') || localStorage.getItem('mitrpholActiveView');
+        if (activeView === 'admin' && (sessionStorage.getItem('mitrpholAdminUser') || localStorage.getItem('mitrpholAdminUser'))) {
+          window.location.replace('admin.html');
+        } else if (activeView === 'user' && (sessionStorage.getItem('mitrpholCompanyUser') || localStorage.getItem('mitrpholCompanyUser'))) {
+          window.location.replace('user.html');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <script src="api-config.js"></script>
   <script>
     (function () {
@@ -62,10 +78,20 @@
     .hidden { display: none !important; }
 
     .bg-animated-mesh {
-      background: radial-gradient(circle at 15% 10%, rgba(22,133,230,.18), transparent 30%), radial-gradient(circle at 85% 15%, rgba(0,82,155,.16), transparent 28%), linear-gradient(135deg, #eef7ff 0%, #f8fbff 48%, #e7f2ff 100%);
+      background-color: #dbeeff;
+      background-image: linear-gradient(135deg, rgba(238, 247, 255, 0.18) 0%, rgba(231, 242, 255, 0.12) 100%), url('/assets/aistudio/blue-office-stationery-set-with-laptop_e219bbe5.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
     }
     .dark .bg-animated-mesh {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background-color: #0f172a;
+      background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.78) 0%, rgba(30, 41, 59, 0.74) 100%), url('/assets/aistudio/blue-office-stationery-set-with-laptop_e219bbe5.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
     }
 
     .glass-header {
@@ -145,14 +171,227 @@
       background: linear-gradient(135deg, rgba(255,255,255,.34), rgba(255,255,255,.06) 42%, transparent 70%);
     }
     .form-card > *, .glass-card > * { position: relative; z-index: 1; }
+
+    /* Modern Login Modal & Animations */
+    @keyframes loginAurora {
+      0%, 100% { transform: translate3d(-12%, -8%, 0) scale(1); }
+      50% { transform: translate3d(14%, 10%, 0) scale(1.12); }
+    }
+    @keyframes loginSheen {
+      0% { transform: translateX(-120%) skewX(-18deg); }
+      100% { transform: translateX(220%) skewX(-18deg); }
+    }
+    @keyframes loginShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    @keyframes loginReveal {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    #companyLoginModal.is-open {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    #companyLoginModal .login-card-shell {
+      opacity: 0;
+      transform: translateY(20px) scale(0.94);
+      transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    #companyLoginModal.is-open .login-card-shell {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    #companyLoginModal.is-open .login-stagger-1 {
+      animation: loginReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+    }
+    #companyLoginModal.is-open .login-stagger-2 {
+      animation: loginReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.11s both;
+    }
+    #companyLoginModal.is-open .login-stagger-3 {
+      animation: loginReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.17s both;
+    }
+    #companyLoginModal.is-open .login-stagger-4 {
+      animation: loginReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.23s both;
+    }
+    .login-aurora-orb {
+      animation: loginAurora 9s ease-in-out infinite;
+      will-change: transform;
+    }
+    .login-segment-track {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 5px;
+      border-radius: 18px;
+    }
+    .login-segment-pill {
+      position: absolute;
+      top: 5px;
+      bottom: 5px;
+      left: 5px;
+      width: calc(50% - 5px);
+      border-radius: 13px;
+      background: linear-gradient(135deg, #1685e6 0%, #00529b 100%);
+      box-shadow: 0 8px 20px -6px rgba(0, 82, 155, 0.48);
+      transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, box-shadow 0.3s ease;
+      will-change: transform;
+    }
+    .login-segment-track[data-mode="admin"] .login-segment-pill {
+      transform: translateX(100%);
+      background: linear-gradient(135deg, #4f46e5 0%, #1e1b4b 100%);
+      box-shadow: 0 8px 20px -6px rgba(67, 56, 202, 0.48);
+    }
+    .login-input-wrap:focus-within .login-field-icon {
+      color: #1685e6;
+      transform: scale(1.1);
+    }
+    .login-cta-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .login-cta-btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 45%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+      transform: translateX(-140%) skewX(-18deg);
+      pointer-events: none;
+    }
+    .login-cta-btn:hover::after {
+      animation: loginSheen 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .login-shake {
+      animation: loginShake 0.38s ease-in-out;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .login-aurora-orb, .login-stagger-1, .login-stagger-2, .login-stagger-3, .login-stagger-4, .login-shake {
+        animation: none !important;
+      }
+      .login-segment-pill, #companyLoginModal .login-card-shell {
+        transition: none !important;
+      }
+    }
+
+    /* Modern Header & Submit Button Effects */
+    @keyframes btnSheenSweep {
+      0% { transform: translateX(-130%) skewX(-18deg); }
+      100% { transform: translateX(230%) skewX(-18deg); }
+    }
+    @keyframes submitRippleExpand {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0.65; }
+      100% { transform: translate(-50%, -50%) scale(3.4); opacity: 0; }
+    }
+    @keyframes submitPulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(22, 133, 230, 0.55), 0 18px 36px -12px rgba(0, 82, 155, 0.45); }
+      70% { box-shadow: 0 0 0 16px rgba(22, 133, 230, 0), 0 18px 36px -12px rgba(0, 82, 155, 0.35); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 133, 230, 0), 0 18px 36px -12px rgba(0, 82, 155, 0.35); }
+    }
+    @keyframes submitPlaneLaunch {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      35% { transform: translate(5px, -5px) rotate(-12deg) scale(1.18); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+
+    .glass-theme-btn {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.86) 0%, rgba(239, 246, 255, 0.68) 100%);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8px 20px -10px rgba(0, 82, 155, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .dark .glass-theme-btn {
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.72) 100%);
+      border-color: rgba(148, 163, 184, 0.25);
+      box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+    .glass-theme-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -10px rgba(22, 133, 230, 0.35), inset 0 1px 0 rgba(255, 255, 255, 1);
+    }
+    .dark .glass-theme-btn:hover {
+      box-shadow: 0 12px 24px -10px rgba(251, 191, 36, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+    .glass-theme-btn:hover i {
+      transform: rotate(22deg) scale(1.1);
+    }
+    .glass-theme-btn i {
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .glass-company-btn {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(22, 133, 230, 0.92) 0%, rgba(0, 105, 199, 0.95) 50%, rgba(0, 58, 112, 0.96) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 10px 24px -10px rgba(0, 82, 155, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, filter 0.25s ease;
+    }
+    .glass-company-btn::after, .glass-submit-btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 45%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+      transform: translateX(-140%) skewX(-18deg);
+      pointer-events: none;
+    }
+    .glass-company-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px -10px rgba(22, 133, 230, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+    .glass-company-btn:hover::after, .glass-submit-btn:hover::after {
+      animation: btnSheenSweep 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-submit-btn {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(67, 165, 255, 0.95) 0%, rgba(22, 133, 230, 0.98) 48%, rgba(0, 82, 155, 1) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.36);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 16px 34px -12px rgba(0, 82, 155, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, filter 0.25s ease;
+    }
+    .glass-submit-btn:hover {
+      transform: translateY(-2.5px);
+      box-shadow: 0 22px 42px -12px rgba(22, 133, 230, 0.56), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+    .glass-submit-btn:active {
+      transform: scale(0.95);
+    }
+    .glass-submit-btn:hover .submit-plane-icon {
+      transform: translate(2px, -2px) rotate(-6deg);
+    }
+    .submit-plane-icon {
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-submit-btn.is-clicked {
+      animation: submitPulseRing 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-submit-btn.is-clicked .submit-plane-icon {
+      animation: submitPlaneLaunch 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .submit-ripple-wave {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.15) 60%, transparent 100%);
+      pointer-events: none;
+      animation: submitRippleExpand 0.58s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
   </style>
 </head>
 <body class="text-gray-800 dark:text-gray-100 min-h-screen relative overflow-x-hidden bg-animated-mesh transition-colors duration-300 pb-16">
-
-  <!-- Ambient Animated Background Blobs -->
-  <div class="fixed top-0 left-1/4 w-96 h-96 bg-brand-200/40 dark:bg-brand-900/20 rounded-full blur-3xl pointer-events-none animate-blob"></div>
-  <div class="fixed top-1/3 right-10 w-80 h-80 bg-accent-400/20 dark:bg-amber-600/10 rounded-full blur-3xl pointer-events-none animate-blob" style="animation-delay: 2s;"></div>
-  <div class="fixed bottom-10 left-10 w-96 h-96 bg-brand-300/30 dark:bg-blue-900/20 rounded-full blur-3xl pointer-events-none animate-blob" style="animation-delay: 4s;"></div>
 
   <!-- Header Component -->
   <div class="relative z-10 max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto mt-4 px-4 lg:px-8">
@@ -168,16 +407,18 @@
         </div>
       </div>
       
-      <div class="flex flex-col items-end gap-2 flex-shrink-0">
-        <div class="w-full flex justify-center pr-2">
-          <button id="themeToggle" type="button" title="สลับโหมดสว่าง/มืด" class="p-2 sm:p-2.5 rounded-xl bg-white/70 dark:bg-slate-800/80 backdrop-blur-md text-gray-600 dark:text-amber-400 hover:scale-105 active:scale-95 transition-all shadow-sm border border-gray-200/60 dark:border-gray-700">
+      <div class="flex flex-row items-center gap-2.5 sm:gap-3 flex-shrink-0">
+        <div>
+          <button id="themeToggle" type="button" title="สลับโหมดสว่าง/มืด" aria-label="สลับโหมดสว่าง/มืด" class="glass-theme-btn w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-amber-400 active:scale-95">
             <i class="fa-solid fa-moon dark:hidden text-sm sm:text-base"></i>
             <i class="fa-solid fa-sun hidden dark:inline text-sm sm:text-base"></i>
           </button>
         </div>
 
-        <button id="viewSwitchBtn" type="button" onclick="openCompanyLogin()" class="px-3.5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-blue-800 text-white hover:from-brand-700 hover:to-blue-900 transition-all duration-300 shadow-md font-semibold text-xs sm:text-sm flex items-center gap-2 hover:scale-105 active:scale-95 whitespace-nowrap">
-          <i class="fa-solid fa-building-user text-sm" id="viewSwitchIcon"></i>
+        <button id="viewSwitchBtn" type="button" onclick="openCompanyLogin()" class="glass-company-btn px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-white font-semibold text-xs sm:text-sm flex items-center gap-2 active:scale-95 whitespace-nowrap">
+          <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-building-user text-xs sm:text-sm" id="viewSwitchIcon"></i>
+          </span>
           <span id="viewSwitchText">สำหรับบริษัท</span>
         </button>
       </div>
@@ -188,6 +429,43 @@
   <!-- VIEW 1: STUDENT FORM SECTION -->
   <div id="studentView" class="relative z-10 max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto mt-6 lg:mt-8 px-4 lg:px-8">
     <form id="appForm" onsubmit="event.preventDefault();" class="space-y-6 lg:space-y-8">
+
+      <!-- Form Completion Progress Bar -->
+      <div id="formProgressCard" class="glass-card rounded-3xl px-5 py-4 sm:px-7 sm:py-5 border border-white/70 dark:border-gray-700/60">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div id="formProgressIconBox" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-blue-600 text-white shadow-md shadow-brand-500/25 flex items-center justify-center flex-shrink-0 transition-all duration-300">
+              <i id="formProgressIcon" class="fa-solid fa-list-check text-sm sm:text-base"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-100 truncate">ความคืบหน้าการกรอกข้อมูล</div>
+              <div id="formProgressSubtitle" class="text-xs text-gray-500 dark:text-gray-400 truncate">กรอกแล้ว 0 จาก 19 รายการจำเป็น</div>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span id="formProgressPercent" class="text-xl sm:text-2xl font-extrabold tabular-nums text-brand-600 dark:text-brand-300 transition-colors duration-300">0%</span>
+          </div>
+        </div>
+
+        <div class="w-full h-3 rounded-full bg-slate-200/80 dark:bg-slate-700/75 overflow-hidden p-0.5 shadow-inner mt-3">
+          <div id="formProgressBar" role="progressbar" aria-label="ความคืบหน้าการกรอกแบบฟอร์ม" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="h-full rounded-full bg-gradient-to-r from-brand-400 via-brand-500 to-blue-600 transition-all duration-500 ease-out" style="width: 0%;"></div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-gray-200/60 dark:border-gray-700/50 text-[11px] sm:text-xs font-medium text-gray-500 dark:text-gray-400">
+          <div id="progSec1" class="flex items-center gap-1.5 truncate transition-colors duration-300">
+            <i class="fa-regular fa-circle text-[10px] flex-shrink-0"></i>
+            <span class="truncate">1. ข้อมูลส่วนตัว (0/6)</span>
+          </div>
+          <div id="progSec2" class="flex items-center justify-center gap-1.5 truncate transition-colors duration-300">
+            <i class="fa-regular fa-circle text-[10px] flex-shrink-0"></i>
+            <span class="truncate">2. การศึกษา (0/6)</span>
+          </div>
+          <div id="progSec3" class="flex items-center justify-end gap-1.5 truncate transition-colors duration-300">
+            <i class="fa-regular fa-circle text-[10px] flex-shrink-0"></i>
+            <span class="truncate">3. เอกสารแนบ (0/7)</span>
+          </div>
+        </div>
+      </div>
       
       <!-- หมวดที่ 1 -->
       <div class="form-card bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 sm:p-8 lg:p-10 border border-brand-100/50 dark:border-gray-700/60 space-y-6">
@@ -423,9 +701,9 @@
 
       <!-- Submit Action Area -->
       <div class="flex justify-center pt-4 pb-8">
-        <button type="button" onclick="openPreviewModal()" class="w-full sm:w-auto min-w-[280px] bg-gradient-to-r from-brand-500 via-brand-600 to-blue-800 hover:from-brand-600 hover:to-blue-900 text-white px-10 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-brand-500/25 hover:shadow-2xl hover:shadow-brand-500/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-3">
-          <span>ตรวจสอบ & ส่งข้อมูล</span>
-          <i class="fa-solid fa-paper-plane text-base"></i>
+        <button id="formSubmitTriggerBtn" type="button" onclick="handleFormSubmitClick(event, this)" class="glass-submit-btn w-full sm:w-auto min-w-[260px] text-white px-10 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3">
+          <span class="relative z-10">ส่งข้อมูล</span>
+          <i class="fa-solid fa-paper-plane text-base relative z-10 submit-plane-icon"></i>
         </button>
       </div>
     </form>
@@ -467,72 +745,95 @@
   </div>
 
   <!-- COMPANY LOGIN MODAL -->
-  <div id="companyLoginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
-    <div class="modal-card bg-white dark:bg-gray-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-white/20 transform scale-95 transition-transform duration-300">
-      <div class="p-6 bg-gradient-to-r from-brand-600 to-blue-800 text-white">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
-              <i class="fa-solid fa-building-shield text-xl"></i>
+  <div id="companyLoginModal" onclick="if (event.target === this) closeCompanyLogin();" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="modal-card login-card-shell relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[28px] w-full max-w-[440px] overflow-hidden shadow-[0_28px_70px_-15px_rgba(15,23,42,0.45)] border border-white/70 dark:border-slate-700/70">
+      
+      <!-- Modern Atmospheric Header -->
+      <div id="loginHeaderBanner" class="relative overflow-hidden px-7 pt-7 pb-6 bg-gradient-to-br from-brand-700 via-brand-600 to-blue-900 text-white transition-all duration-300">
+        <div class="login-aurora-orb absolute -top-12 -right-10 w-48 h-48 rounded-full bg-cyan-300/25 blur-2xl pointer-events-none"></div>
+        <div class="login-aurora-orb absolute -bottom-16 -left-12 w-44 h-44 rounded-full bg-blue-300/20 blur-2xl pointer-events-none" style="animation-delay: -4s;"></div>
+
+        <div class="relative z-10 flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center shadow-lg shadow-black/10 shrink-0">
+              <i id="loginHeaderIcon" class="fa-solid fa-building-shield text-xl transition-transform duration-300"></i>
             </div>
             <div>
-              <h3 class="font-bold text-xl">เข้าสู่ระบบสำหรับบริษัท</h3>
-              <p class="text-xs text-white/75">Company / Staff Login</p>
+              <h3 class="font-bold text-xl tracking-tight leading-snug">เข้าสู่ระบบสำหรับบริษัท</h3>
+              <p class="text-xs text-blue-100/85 font-normal">Mitr Phol · Staff &amp; Admin Portal</p>
             </div>
           </div>
-          <button type="button" onclick="closeCompanyLogin()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
-            <i class="fa-solid fa-xmark"></i>
+          <button type="button" onclick="closeCompanyLogin()" aria-label="ปิดหน้าต่าง" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 border border-white/15 flex items-center justify-center transition-all duration-200 hover:rotate-90 active:scale-90 shrink-0">
+            <i class="fa-solid fa-xmark text-sm"></i>
           </button>
         </div>
       </div>
 
-      <div class="px-6 pt-5">
-        <div class="grid grid-cols-2 gap-4 p-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-3xl border border-blue-100 dark:border-slate-700">
-          <button id="loginModeUser" type="button" onclick="setCompanyLoginMode('user')" class="py-4 px-4 rounded-2xl text-sm font-bold transition-all bg-gradient-to-r from-brand-600 to-blue-800 text-white shadow-md">
-            <i class="fa-solid fa-user-tie mr-2"></i>USER<br><span class="text-[10px] font-normal opacity-80">ผู้ใช้งานทั่วไป</span>
-          </button>
-          <button id="loginModeAdmin" type="button" onclick="setCompanyLoginMode('admin')" class="py-4 px-4 rounded-2xl text-sm font-bold transition-all text-gray-500 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-slate-700">
-            <i class="fa-solid fa-user-shield mr-2"></i>ADMIN<br><span class="text-[10px] font-normal opacity-80">ผู้ดูแลระบบ</span>
-          </button>
-        </div>
-        <p id="loginModeHint" class="text-[11px] text-gray-400 mt-2 text-center">เข้าสู่ระบบสำหรับผู้ใช้งานทั่วไป</p>
-      </div>
-
-      <form id="companyLoginForm" class="p-6 space-y-5" onsubmit="event.preventDefault(); submitCompanyLogin();">
-        <div>
-          <label class="block text-sm font-semibold mb-2">
-            <i class="fa-solid fa-user mr-2 text-brand-600"></i>Username
-          </label>
-          <input id="companyUsername" type="text" autocomplete="username"
-                 class="w-full p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 outline-none"
-                 placeholder="กรอก Username หรือ Email พนักงาน">
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold mb-2">
-            <i class="fa-solid fa-lock mr-2 text-brand-600"></i>Password
-          </label>
-          <div class="relative">
-            <input id="companyPassword" type="password" autocomplete="current-password"
-                   class="w-full p-3.5 pr-12 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 outline-none"
-                   placeholder="กรอก Password">
-            <button type="button" onclick="toggleCompanyPassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-600">
-              <i id="companyPasswordIcon" class="fa-solid fa-eye"></i>
+      <div class="p-6 sm:p-7 space-y-5">
+        <!-- Sliding Segmented Mode Selector -->
+        <div class="login-stagger-1">
+          <div id="loginModeTrack" data-mode="user" class="login-segment-track bg-slate-100/95 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
+            <div class="login-segment-pill" aria-hidden="true"></div>
+            <button id="loginModeUser" type="button" onclick="setCompanyLoginMode('user')" class="relative z-10 py-2.5 px-3 rounded-xl text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-2 text-white whitespace-nowrap">
+              <i class="fa-solid fa-user-tie text-xs"></i>
+              <span>ผู้ใช้งาน (User)</span>
+            </button>
+            <button id="loginModeAdmin" type="button" onclick="setCompanyLoginMode('admin')" class="relative z-10 py-2.5 px-3 rounded-xl text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-2 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+              <i class="fa-solid fa-user-shield text-xs"></i>
+              <span>ผู้ดูแลระบบ (Admin)</span>
             </button>
           </div>
+          <p id="loginModeHint" class="text-xs text-slate-500 dark:text-slate-400 mt-2.5 text-center transition-opacity duration-200">
+            เข้าสู่ระบบสำหรับเจ้าหน้าที่และผู้รับนักศึกษาฝึกงาน
+          </p>
         </div>
 
-        <div id="companyLoginError" class="hidden text-sm text-red-500 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-2xl p-3">
-          <i class="fa-solid fa-circle-exclamation mr-2"></i>
-          Username หรือ Password ไม่ถูกต้อง
-        </div>
+        <form id="companyLoginForm" class="space-y-4" onsubmit="event.preventDefault(); submitCompanyLogin();">
+          <div class="login-stagger-2">
+            <label for="companyUsername" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">
+              Username หรือ Email พนักงาน
+            </label>
+            <div class="login-input-wrap relative">
+              <span class="login-field-icon absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-all duration-200 pointer-events-none">
+                <i class="fa-solid fa-user text-sm"></i>
+              </span>
+              <input id="companyUsername" type="text" autocomplete="username"
+                     class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 text-sm outline-none placeholder:text-slate-400"
+                     placeholder="กรอก Username หรือ Email พนักงาน">
+            </div>
+          </div>
 
-        <button id="companyLoginBtn" type="submit"
-                class="w-full bg-gradient-to-r from-brand-600 to-blue-800 hover:from-brand-700 hover:to-blue-900 text-white py-3.5 rounded-2xl font-bold shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0">
-          <span id="companyLoginText"><i class="fa-solid fa-right-to-bracket mr-2"></i>เข้าสู่ระบบ</span>
-          <span id="companyLoginLoading" class="hidden"><i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังตรวจสอบ...</span>
-        </button>
-      </form>
+          <div class="login-stagger-3">
+            <label for="companyPassword" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">
+              รหัสผ่าน (Password)
+            </label>
+            <div class="login-input-wrap relative">
+              <span class="login-field-icon absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-all duration-200 pointer-events-none">
+                <i class="fa-solid fa-lock text-sm"></i>
+              </span>
+              <input id="companyPassword" type="password" autocomplete="current-password"
+                     class="w-full pl-11 pr-12 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 text-sm outline-none placeholder:text-slate-400"
+                     placeholder="กรอก Password">
+              <button type="button" onclick="toggleCompanyPassword()" aria-label="แสดง/ซ่อนรหัสผ่าน" class="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl text-slate-400 hover:text-brand-600 hover:bg-slate-200/60 dark:hover:bg-slate-700 flex items-center justify-center transition-colors">
+                <i id="companyPasswordIcon" class="fa-solid fa-eye text-sm"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="companyLoginError" class="hidden text-xs sm:text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 rounded-2xl px-4 py-3 flex items-center gap-2">
+            <i class="fa-solid fa-circle-exclamation shrink-0"></i>
+            <span>Username หรือ Password ไม่ถูกต้อง</span>
+          </div>
+
+          <div class="login-stagger-4 pt-1">
+            <button id="companyLoginBtn" type="submit"
+                    class="login-cta-btn w-full bg-gradient-to-r from-brand-500 via-brand-600 to-blue-800 hover:brightness-105 text-white py-3.5 px-6 rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-brand-600/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] flex items-center justify-center">
+              <span id="companyLoginText" class="flex items-center justify-center gap-2"><i class="fa-solid fa-right-to-bracket"></i><span>เข้าสู่ระบบ USER</span></span>
+              <span id="companyLoginLoading" class="hidden flex items-center justify-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i><span>กำลังตรวจสอบ...</span></span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -546,44 +847,87 @@
 
     document.getElementById('themeToggle').addEventListener('click', () => document.documentElement.classList.toggle('dark'));
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('companyLoginModal');
+        if (modal && modal.classList.contains('is-open')) {
+          closeCompanyLogin();
+        }
+      }
+    });
+
     function setCompanyLoginMode(mode) {
       companyLoginMode = mode === 'admin' ? 'admin' : 'user';
+      const track = document.getElementById('loginModeTrack');
       const userBtn = document.getElementById('loginModeUser');
       const adminBtn = document.getElementById('loginModeAdmin');
       const hint = document.getElementById('loginModeHint');
-      const active = ['bg-gradient-to-r','from-brand-600','to-blue-800','text-white','shadow-md'];
-      const inactive = ['text-gray-500','dark:text-gray-300'];
-      userBtn.classList.remove(...active, ...inactive);
-      adminBtn.classList.remove(...active, ...inactive);
+      const headerBanner = document.getElementById('loginHeaderBanner');
+      const headerIcon = document.getElementById('loginHeaderIcon');
+      const loginBtn = document.getElementById('companyLoginBtn');
+
+      if (track) track.setAttribute('data-mode', companyLoginMode);
+
       if (companyLoginMode === 'admin') {
-        adminBtn.classList.add(...active); userBtn.classList.add(...inactive);
-        hint.innerHTML = '<i class="fa-solid fa-shield-halved mr-1"></i>เฉพาะ Role Admin ในฐานข้อมูล';
-        document.getElementById('companyLoginText').innerHTML = '<i class="fa-solid fa-user-shield mr-2"></i>เข้าสู่ระบบ ADMIN';
+        adminBtn.classList.remove('text-slate-600', 'dark:text-slate-300');
+        adminBtn.classList.add('text-white');
+        userBtn.classList.remove('text-white');
+        userBtn.classList.add('text-slate-600', 'dark:text-slate-300');
+        if (headerBanner) {
+          headerBanner.className = 'relative overflow-hidden px-7 pt-7 pb-6 bg-gradient-to-br from-indigo-700 via-blue-800 to-slate-900 text-white transition-all duration-300';
+        }
+        if (headerIcon) headerIcon.className = 'fa-solid fa-user-shield text-xl transition-transform duration-300 scale-105';
+        if (loginBtn) {
+          loginBtn.className = 'login-cta-btn w-full bg-gradient-to-r from-indigo-600 via-blue-700 to-slate-900 hover:brightness-110 text-white py-3.5 px-6 rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-indigo-700/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] flex items-center justify-center';
+        }
+        hint.innerHTML = '<i class="fa-solid fa-shield-halved mr-1.5 text-indigo-500"></i>เฉพาะสิทธิ์ผู้ดูแลระบบ (Role Admin)';
+        document.getElementById('companyLoginText').innerHTML = '<i class="fa-solid fa-user-shield"></i><span>เข้าสู่ระบบ ADMIN</span>';
       } else {
-        userBtn.classList.add(...active); adminBtn.classList.add(...inactive);
-        hint.innerText = 'เข้าสู่ระบบสำหรับผู้ใช้งานทั่วไป';
-        document.getElementById('companyLoginText').innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i>เข้าสู่ระบบ USER';
+        userBtn.classList.remove('text-slate-600', 'dark:text-slate-300');
+        userBtn.classList.add('text-white');
+        adminBtn.classList.remove('text-white');
+        adminBtn.classList.add('text-slate-600', 'dark:text-slate-300');
+        if (headerBanner) {
+          headerBanner.className = 'relative overflow-hidden px-7 pt-7 pb-6 bg-gradient-to-br from-brand-700 via-brand-600 to-blue-900 text-white transition-all duration-300';
+        }
+        if (headerIcon) headerIcon.className = 'fa-solid fa-building-shield text-xl transition-transform duration-300';
+        if (loginBtn) {
+          loginBtn.className = 'login-cta-btn w-full bg-gradient-to-r from-brand-500 via-brand-600 to-blue-800 hover:brightness-105 text-white py-3.5 px-6 rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-brand-600/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] flex items-center justify-center';
+        }
+        hint.innerText = 'เข้าสู่ระบบสำหรับเจ้าหน้าที่และผู้รับนักศึกษาฝึกงาน';
+        document.getElementById('companyLoginText').innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>เข้าสู่ระบบ USER</span>';
       }
       document.getElementById('companyLoginError').classList.add('hidden');
     }
 
     function openCompanyLogin() {
+      if (typeof warmupGas === 'function') warmupGas();
       setCompanyLoginMode('user');
       const modal = document.getElementById('companyLoginModal');
       document.getElementById('companyLoginError').classList.add('hidden');
       modal.classList.remove('opacity-0', 'pointer-events-none');
-      modal.querySelector('.modal-card').classList.remove('scale-95');
-      modal.querySelector('.modal-card').classList.add('scale-100');
-      setTimeout(() => document.getElementById('companyUsername').focus(), 150);
+      modal.classList.add('is-open');
+      setTimeout(() => document.getElementById('companyUsername').focus(), 120);
     }
 
     function closeCompanyLogin() {
       const modal = document.getElementById('companyLoginModal');
+      modal.classList.remove('is-open');
       modal.classList.add('opacity-0', 'pointer-events-none');
-      modal.querySelector('.modal-card').classList.add('scale-95');
-      modal.querySelector('.modal-card').classList.remove('scale-100');
       document.getElementById('companyPassword').value = '';
       document.getElementById('companyLoginError').classList.add('hidden');
+    }
+
+    function triggerLoginError(msg) {
+      const errorBox = document.getElementById('companyLoginError');
+      const card = document.querySelector('#companyLoginModal .login-card-shell');
+      errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation shrink-0"></i><span>' + msg + '</span>';
+      errorBox.classList.remove('hidden');
+      if (card) {
+        card.classList.remove('login-shake');
+        void card.offsetWidth;
+        card.classList.add('login-shake');
+      }
     }
 
     function toggleCompanyPassword() {
@@ -591,7 +935,7 @@
       const icon = document.getElementById('companyPasswordIcon');
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      icon.className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+      icon.className = show ? 'fa-solid fa-eye-slash text-sm' : 'fa-solid fa-eye text-sm';
     }
 
     async function submitCompanyLogin() {
@@ -603,8 +947,8 @@
       errorBox.classList.add('hidden');
 
       if (!username) {
-        errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>กรุณากรอก Username';
-        errorBox.classList.remove('hidden');
+        triggerLoginError('กรุณากรอก Username');
+        document.getElementById('companyUsername').focus();
         return;
       }
 
@@ -614,32 +958,41 @@
 
       try {
         const result = await callGasPost('login', { username: username, password: password });
-        
-        btn.disabled = false;
-        document.getElementById('companyLoginText').classList.remove('hidden');
-        document.getElementById('companyLoginLoading').classList.add('hidden');
 
         if (result && result.success) {
           companyAuthenticated = true;
           companyUser = result.user;
 
           if (companyLoginMode === 'admin' && String(result.user.role || '').toLowerCase() !== 'admin') {
-            errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานในระดับ Admin';
-            errorBox.classList.remove('hidden');
+            btn.disabled = false;
+            document.getElementById('companyLoginText').classList.remove('hidden');
+            document.getElementById('companyLoginLoading').classList.add('hidden');
+            triggerLoginError('บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานในระดับ Admin');
             return;
           }
 
           if (companyLoginMode === 'admin' && String(result.user.role || '').toLowerCase() === 'admin') {
-            sessionStorage.setItem('mitrpholAdminUser', JSON.stringify(result.user));
-            window.location.href = 'admin.html';
+            const userJson = JSON.stringify(result.user);
+            sessionStorage.setItem('mitrpholAdminUser', userJson);
+            localStorage.setItem('mitrpholAdminUser', userJson);
+            sessionStorage.setItem('mitrpholActiveView', 'admin');
+            localStorage.setItem('mitrpholActiveView', 'admin');
+            window.location.replace('admin.html');
             return;
           }
 
-          sessionStorage.setItem('mitrpholCompanyUser', JSON.stringify(result.user));
-          window.location.href = 'user.html';
+          const userJson = JSON.stringify(result.user);
+          sessionStorage.setItem('mitrpholCompanyUser', userJson);
+          localStorage.setItem('mitrpholCompanyUser', userJson);
+          sessionStorage.setItem('mitrpholActiveView', 'user');
+          localStorage.setItem('mitrpholActiveView', 'user');
+          window.location.replace('user.html');
+          return;
         } else {
-          errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>' + ((result && result.message) ? result.message : 'Username หรือ Password ไม่ถูกต้อง');
-          errorBox.classList.remove('hidden');
+          btn.disabled = false;
+          document.getElementById('companyLoginText').classList.remove('hidden');
+          document.getElementById('companyLoginLoading').classList.add('hidden');
+          triggerLoginError((result && result.message) ? result.message : 'Username หรือ Password ไม่ถูกต้อง');
           document.getElementById('companyPassword').value = '';
           document.getElementById('companyPassword').focus();
         }
@@ -647,10 +1000,101 @@
         btn.disabled = false;
         document.getElementById('companyLoginText').classList.remove('hidden');
         document.getElementById('companyLoginLoading').classList.add('hidden');
-        errorBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i>ไม่สามารถตรวจสอบการเข้าสู่ระบบได้: ' + (error.message || error);
-        errorBox.classList.remove('hidden');
+        triggerLoginError('ไม่สามารถตรวจสอบการเข้าสู่ระบบได้: ' + (error.message || error));
       }
     }
+
+    function updateFormProgress() {
+      const degOption = document.querySelector('input[name="degree"]:checked');
+      const degOtherVal = document.getElementById('degreeOtherText')?.value.trim() || '';
+      const startVal = document.getElementById('startDate')?.value || '';
+      const endVal = document.getElementById('endDate')?.value || '';
+
+      const sec1Done = [
+        Boolean(document.getElementById('location')?.value),
+        Boolean(document.getElementById('fullName')?.value.trim()),
+        /^[0-9]{9,10}$/.test((document.getElementById('phone')?.value || '').trim()),
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((document.getElementById('emailStudent')?.value || '').trim()),
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((document.getElementById('emailInst')?.value || '').trim()),
+        Boolean(document.getElementById('address')?.value.trim())
+      ].filter(Boolean).length;
+
+      const sec2Done = [
+        Boolean(degOption && (degOption.value !== 'อื่นๆ' || degOtherVal)),
+        Boolean(document.getElementById('institution')?.value.trim()),
+        Boolean(document.getElementById('major')?.value.trim()),
+        Boolean(startVal),
+        Boolean(endVal && !(startVal && startVal >= endVal)),
+        Boolean(document.querySelector('input[name="workUnit"]:checked'))
+      ].filter(Boolean).length;
+
+      const sec3Done = [
+        Boolean(document.getElementById('skills')?.value.trim()),
+        Boolean(document.getElementById('emergencyName')?.value.trim()),
+        Boolean(document.getElementById('emergencyPhone')?.value.trim()),
+        Boolean(uploadedFilesMap['Resume']),
+        Boolean(uploadedFilesMap['Transcript']),
+        Boolean(uploadedFilesMap['IDCard']),
+        Boolean(profileImageData)
+      ].filter(Boolean).length;
+
+      const total = 19;
+      const completed = sec1Done + sec2Done + sec3Done;
+      const pct = Math.round((completed / total) * 100);
+
+      const bar = document.getElementById('formProgressBar');
+      const percentEl = document.getElementById('formProgressPercent');
+      const subtitleEl = document.getElementById('formProgressSubtitle');
+      const iconBox = document.getElementById('formProgressIconBox');
+      const icon = document.getElementById('formProgressIcon');
+
+      if (bar) {
+        bar.style.width = pct + '%';
+        bar.setAttribute('aria-valuenow', String(pct));
+        if (pct === 100) {
+          bar.className = 'h-full rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 transition-all duration-500 ease-out';
+        } else {
+          bar.className = 'h-full rounded-full bg-gradient-to-r from-brand-400 via-brand-500 to-blue-600 transition-all duration-500 ease-out';
+        }
+      }
+
+      if (percentEl) {
+        percentEl.innerText = pct + '%';
+        percentEl.className = pct === 100
+          ? 'text-xl sm:text-2xl font-extrabold tabular-nums text-emerald-600 dark:text-emerald-400 transition-colors duration-300'
+          : 'text-xl sm:text-2xl font-extrabold tabular-nums text-brand-600 dark:text-brand-300 transition-colors duration-300';
+      }
+
+      if (subtitleEl) {
+        subtitleEl.innerText = pct === 100
+          ? 'กรอกข้อมูลครบถ้วน พร้อมส่งใบสมัครแล้ว'
+          : `กรอกแล้ว ${completed} จาก ${total} รายการจำเป็น`;
+      }
+
+      if (iconBox && icon) {
+        if (pct === 100) {
+          iconBox.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25 flex items-center justify-center flex-shrink-0 transition-all duration-300';
+          icon.className = 'fa-solid fa-check text-sm sm:text-base';
+        } else {
+          iconBox.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-blue-600 text-white shadow-md shadow-brand-500/25 flex items-center justify-center flex-shrink-0 transition-all duration-300';
+          icon.className = 'fa-solid fa-list-check text-sm sm:text-base';
+        }
+      }
+
+      const updateStep = (elId, label, done, max, alignClass) => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        const isDone = done === max;
+        el.className = `flex items-center ${alignClass} gap-1.5 truncate transition-colors duration-300 ${isDone ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`;
+        el.innerHTML = `<i class="${isDone ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'} text-[10px] flex-shrink-0"></i><span class="truncate">${label} (${done}/${max})</span>`;
+      };
+
+      updateStep('progSec1', '1. ข้อมูลส่วนตัว', sec1Done, 6, '');
+      updateStep('progSec2', '2. การศึกษา', sec2Done, 6, 'justify-center');
+      updateStep('progSec3', '3. เอกสารแนบ', sec3Done, 7, 'justify-end');
+    }
+
+    document.addEventListener('DOMContentLoaded', updateFormProgress);
 
     function validateAllFields() {
       let isValid = true;
@@ -683,6 +1127,7 @@
 
       ['Resume', 'Transcript', 'IDCard'].forEach(k => toggleErr(`err-file-${k}`, !uploadedFilesMap[k]));
       toggleErr('err-file-Profile', !profileImageData);
+      updateFormProgress();
       return isValid;
     }
 
@@ -735,6 +1180,27 @@
       validateAllFields();
     }
 
+    function handleFormSubmitClick(event, btn) {
+      if (btn) {
+        const rect = btn.getBoundingClientRect();
+        const x = (event && event.clientX) ? (event.clientX - rect.left) : (rect.width / 2);
+        const y = (event && event.clientY) ? (event.clientY - rect.top) : (rect.height / 2);
+
+        const ripple = document.createElement('span');
+        ripple.className = 'submit-ripple-wave';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 620);
+
+        btn.classList.remove('is-clicked');
+        void btn.offsetWidth;
+        btn.classList.add('is-clicked');
+        setTimeout(() => btn.classList.remove('is-clicked'), 600);
+      }
+      setTimeout(() => openPreviewModal(), 120);
+    }
+
     function openPreviewModal() {
       hasAttemptedSubmit = true;
       if (!validateAllFields()) { alert("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน"); return; }
@@ -750,7 +1216,7 @@
         { l: "1. สถานที่สมัคร", v: document.getElementById('location').value },
         { l: "2. ชื่อ-สกุล", v: document.getElementById('fullName').value },
         { l: "3. ชื่อเล่น", v: document.getElementById('nickName').value || '-' },
-        { l: "4. เบอร์โทรศัพท์", v: document.getElementById('phone').value },
+        { l: "4. เบอร์โทรศัพท์", v: formatThaiPhone(document.getElementById('phone').value) },
         { l: "5. Line ID", v: document.getElementById('lineId').value || '-' },
         { l: "6. E-mail (นักศึกษา)", v: document.getElementById('emailStudent').value },
         { l: "7. E-mail (สถาบัน)", v: document.getElementById('emailInst').value },
@@ -761,7 +1227,7 @@
         { l: "12-13. ช่วงเวลาฝึกงาน", v: `${document.getElementById('startDate').value} ถึง ${document.getElementById('endDate').value}` },
         { l: "14. หน่วยงานที่ต้องการ", v: document.querySelector('input[name="workUnit"]:checked')?.value || '-' },
         { l: "15. ความสามารถพิเศษ", v: document.getElementById('skills').value },
-        { l: "16-17. ติดต่อฉุกเฉิน", v: `${document.getElementById('emergencyName').value} (${document.getElementById('emergencyPhone').value})` },
+        { l: "16-17. ติดต่อฉุกเฉิน", v: `${document.getElementById('emergencyName').value} (${formatThaiPhone(document.getElementById('emergencyPhone').value)})` },
         { l: "18. เอกสารแนบ", v: fileNames },
         { l: "19. รูป Profile", v: profileImageData ? profileImageData.name : 'ไม่มีรูปภาพ' }
       ];
@@ -841,6 +1307,7 @@
 
           const form = document.getElementById('appForm');
           if (form) form.reset();
+          hasAttemptedSubmit = false;
           
           uploadedFilesMap = {};
           profileImageData = null;
@@ -851,6 +1318,7 @@
             if (db) db.classList.add('hidden');
           });
           removeProfileImage();
+          updateFormProgress();
           resetSubmitButton();
 
           setTimeout(() => {
