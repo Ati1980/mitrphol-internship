@@ -194,6 +194,25 @@
       transform: translateY(-2px);
     }
 
+    .editable-email-body {
+      outline: none;
+      min-height: 180px;
+      max-height: 320px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+    .editable-email-body[contenteditable="true"] {
+      cursor: text;
+      background-color: #ffffff;
+    }
+    .editable-email-body[contenteditable="true"]:hover {
+      border-color: #5eead4;
+    }
+    .editable-email-body[contenteditable="true"]:focus {
+      border-color: #0d9488;
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.16);
+      background-color: #ffffff;
+    }
+
     /* Modern Quota Modal & Animations */
     @keyframes quotaAurora {
       0%, 100% { transform: translate3d(-10%, -8%, 0) scale(1); }
@@ -615,7 +634,7 @@
           </div>
           <div>
             <h3 class="text-lg font-black text-gray-900">ตัวอย่างอีเมลแจ้งผล (Email Preview)</h3>
-            <p class="text-xs text-gray-400">ตรวจสอบรายละเอียด ผู้รับ และไฟล์แนบก่อนกดส่งจริง</p>
+            <p class="text-xs text-gray-400">ตรวจสอบรายละเอียด ผู้รับ และแก้ไขข้อความก่อนกดส่งจริง</p>
           </div>
         </div>
         <button onclick="closeEmailPreviewModal()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold transition">✕</button>
@@ -634,19 +653,27 @@
           <span class="w-24 font-bold text-gray-500 shrink-0"><i class="fa-solid fa-heading mr-1 text-teal-600"></i> หัวข้อ:</span>
           <span id="previewSubject" class="font-bold text-gray-900 break-all">-</span>
         </div>
-        <div class="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
-          <span class="font-bold text-gray-500 block mb-1.5"><i class="fa-solid fa-paperclip mr-1 text-teal-600"></i> เอกสารแนบของผู้สมัคร:</span>
-          <div id="previewFilesContainer" class="flex flex-wrap gap-2">
-            <span class="text-gray-400 text-xs">ไม่มีไฟล์แนบ</span>
-          </div>
-        </div>
       </div>
 
       <div>
-        <div class="text-xs font-bold text-gray-600 mb-1 flex items-center gap-1">
-          <i class="fa-solid fa-eye text-teal-600"></i> เนื้อหาที่จะแสดงในกล่องจดหมาย:
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+          <div class="text-xs font-bold text-gray-600 flex items-center gap-1.5">
+            <i class="fa-solid fa-pen-to-square text-teal-600"></i>
+            <span>เนื้อหาที่จะแสดงในกล่องจดหมาย (คลิกเพื่อแก้ไขได้):</span>
+          </div>
+          <div class="flex items-center flex-wrap gap-2">
+            <span id="emailDraftStatusBadge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-bold" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+              บันทึกอัตโนมัติแล้ว
+            </span>
+            <button type="button" id="btnSaveEmailDraft" onclick="saveEmailDraft(true)" class="hidden px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1" style="background: #ccfbf1; color: #0f766e; border: 1px solid #5eead4;">
+              <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อความ
+            </button>
+            <button type="button" id="btnResetEmailBody" onclick="resetEmailBodyToDefault()" class="hidden px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
+              <i class="fa-solid fa-rotate-left"></i> คืนค่าเดิม
+            </button>
+          </div>
         </div>
-        <div id="previewEmailBody" class="p-4 rounded-2xl border border-gray-200 bg-slate-50 min-h-[160px] max-h-64 overflow-y-auto"></div>
+        <div id="previewEmailBody" contenteditable="false" spellcheck="false" oninput="handlePreviewBodyInput()" onblur="saveEmailDraft(false)" class="editable-email-body p-4 rounded-2xl border border-gray-200 bg-slate-50 overflow-y-auto"></div>
       </div>
 
       <div class="flex items-center justify-end gap-3 border-t pt-4 border-gray-200">
@@ -861,7 +888,9 @@
     const cacheKey = 'mitrpholAdminAppsCache';
     let hasCached = false;
 
-    if (!forceFresh) {
+    if (forceFresh) {
+      try { sessionStorage.removeItem('mitrpholAllQuotaCache'); } catch (e) {}
+    } else {
       try {
         const cachedData = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
         if (Array.isArray(cachedData)) {
@@ -1306,15 +1335,125 @@
   }
 
   let currentEmailRowTarget = null;
+  let originalEmailBodyHtml = '';
+  let emailDraftAutoSaveTimer = null;
+  const EMAIL_DRAFTS_STORAGE_KEY = 'mitrpholEmailDrafts';
+
+  function getEmailDraftsMap() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(EMAIL_DRAFTS_STORAGE_KEY) || '{}');
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveEmailDraftsMap(map) {
+    try {
+      localStorage.setItem(EMAIL_DRAFTS_STORAGE_KEY, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function sanitizeEditableEmailHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = String(html || '');
+    tmp.querySelectorAll('script, iframe, object, embed').forEach((el) => el.remove());
+    return tmp.innerHTML.trim();
+  }
+
+  function updateEmailBodyEditedState(statusText = '') {
+    const bodyEl = document.getElementById('previewEmailBody');
+    const badge = document.getElementById('emailDraftStatusBadge');
+    const saveBtn = document.getElementById('btnSaveEmailDraft');
+    const resetBtn = document.getElementById('btnResetEmailBody');
+    if (!bodyEl || !originalEmailBodyHtml) return;
+
+    const currentSanitized = sanitizeEditableEmailHtml(bodyEl.innerHTML);
+    const originalSanitized = sanitizeEditableEmailHtml(originalEmailBodyHtml);
+    const isModified = currentSanitized !== originalSanitized;
+
+    if (saveBtn) saveBtn.classList.toggle('hidden', !isModified);
+    if (resetBtn) resetBtn.classList.toggle('hidden', !isModified);
+
+    if (badge) {
+      if (!isModified && !statusText) {
+        badge.classList.add('hidden');
+      } else {
+        badge.classList.remove('hidden');
+        if (statusText === 'saving') {
+          badge.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>กำลังบันทึก...';
+          badge.style.background = '#fef3c7';
+          badge.style.color = '#b45309';
+          badge.style.borderColor = '#fde68a';
+        } else {
+          badge.innerHTML = '<i class="fa-solid fa-check mr-1"></i>' + (statusText || 'บันทึกอัตโนมัติแล้ว');
+          badge.style.background = '#ecfdf5';
+          badge.style.color = '#047857';
+          badge.style.borderColor = '#a7f3d0';
+        }
+      }
+    }
+  }
+
+  function saveEmailDraft(showFeedback = false) {
+    if (!currentEmailRowTarget) return;
+    const bodyEl = document.getElementById('previewEmailBody');
+    if (!bodyEl || !originalEmailBodyHtml) return;
+
+    const currentSanitized = sanitizeEditableEmailHtml(bodyEl.innerHTML);
+    const originalSanitized = sanitizeEditableEmailHtml(originalEmailBodyHtml);
+    const drafts = getEmailDraftsMap();
+    const rowKey = String(currentEmailRowTarget);
+
+    if (currentSanitized && currentSanitized !== originalSanitized) {
+      drafts[rowKey] = currentSanitized;
+      saveEmailDraftsMap(drafts);
+      updateEmailBodyEditedState(showFeedback ? 'บันทึกข้อความแล้ว' : 'บันทึกอัตโนมัติแล้ว');
+    } else {
+      if (drafts[rowKey]) {
+        delete drafts[rowKey];
+        saveEmailDraftsMap(drafts);
+      }
+      updateEmailBodyEditedState('');
+    }
+  }
+
+  function handlePreviewBodyInput() {
+    updateEmailBodyEditedState('saving');
+    if (emailDraftAutoSaveTimer) clearTimeout(emailDraftAutoSaveTimer);
+    emailDraftAutoSaveTimer = setTimeout(() => {
+      saveEmailDraft(false);
+    }, 350);
+  }
+
+  function resetEmailBodyToDefault() {
+    const bodyEl = document.getElementById('previewEmailBody');
+    if (!bodyEl || !originalEmailBodyHtml) return;
+    if (emailDraftAutoSaveTimer) clearTimeout(emailDraftAutoSaveTimer);
+    bodyEl.innerHTML = originalEmailBodyHtml;
+    if (currentEmailRowTarget) {
+      const drafts = getEmailDraftsMap();
+      delete drafts[String(currentEmailRowTarget)];
+      saveEmailDraftsMap(drafts);
+    }
+    updateEmailBodyEditedState('');
+  }
 
   async function handleSendEmail(sheetRow, applicantName) {
     currentEmailRowTarget = sheetRow;
+    originalEmailBodyHtml = '';
+    if (emailDraftAutoSaveTimer) clearTimeout(emailDraftAutoSaveTimer);
 
     document.getElementById('previewToEmail').innerText = 'กำลังโหลดข้อมูล...';
     document.getElementById('previewCcEmail').innerText = '-';
     document.getElementById('previewSubject').innerText = 'กำลังโหลด...';
-    document.getElementById('previewFilesContainer').innerHTML = '<span class="text-gray-400">กำลังตรวจสอบ...</span>';
-    document.getElementById('previewEmailBody').innerHTML = `
+    document.getElementById('emailDraftStatusBadge')?.classList.add('hidden');
+    document.getElementById('btnSaveEmailDraft')?.classList.add('hidden');
+    document.getElementById('btnResetEmailBody')?.classList.add('hidden');
+
+    const previewBodyEl = document.getElementById('previewEmailBody');
+    previewBodyEl.setAttribute('contenteditable', 'false');
+    previewBodyEl.innerHTML = `
       <div class="py-8 text-center text-gray-400">
         <i class="fa-solid fa-spinner fa-spin text-xl text-teal-600 mb-2"></i>
         <p>กำลังดึงข้อมูลและเตรียมเทมเพลตอีเมล...</p>
@@ -1337,18 +1476,15 @@
       document.getElementById('previewToEmail').innerText = res.to || '(ไม่มีอีเมลในระบบ)';
       document.getElementById('previewCcEmail').innerText = res.cc || '(ไม่มี)';
       document.getElementById('previewSubject').innerText = res.subject;
-      document.getElementById('previewEmailBody').innerHTML = res.bodyHtml;
 
-      const filesContainer = document.getElementById('previewFilesContainer');
-      if (res.files && res.files.length > 0) {
-        filesContainer.innerHTML = res.files.map(f => `
-          <a href="${f.url}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition">
-            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> ${f.name}
-          </a>
-        `).join('');
-      } else {
-        filesContainer.innerHTML = '<span class="text-gray-400 text-xs">ไม่มีไฟล์แนบ</span>';
-      }
+      originalEmailBodyHtml = res.bodyHtml || '';
+      const drafts = getEmailDraftsMap();
+      const savedDraft = drafts[String(sheetRow)];
+      const hasSavedDraft = Boolean(savedDraft && sanitizeEditableEmailHtml(savedDraft) !== sanitizeEditableEmailHtml(originalEmailBodyHtml));
+
+      previewBodyEl.innerHTML = hasSavedDraft ? savedDraft : originalEmailBodyHtml;
+      previewBodyEl.setAttribute('contenteditable', 'true');
+      updateEmailBodyEditedState(hasSavedDraft ? 'โหลดข้อความที่บันทึกไว้แล้ว' : '');
 
       if (res.to && res.to.indexOf('@') > 0) {
         btnConfirm.disabled = false;
@@ -1366,6 +1502,21 @@
     if (!currentEmailRowTarget) return;
     const sheetRow = currentEmailRowTarget;
 
+    if (emailDraftAutoSaveTimer) clearTimeout(emailDraftAutoSaveTimer);
+    saveEmailDraft(false);
+
+    const previewBodyEl = document.getElementById('previewEmailBody');
+    const editedBodyHtml = previewBodyEl ? sanitizeEditableEmailHtml(previewBodyEl.innerHTML) : '';
+    const editedBodyText = previewBodyEl ? previewBodyEl.innerText.trim() : '';
+
+    if (!editedBodyText) {
+      alert('กรุณากรอกข้อความอีเมลก่อนกดส่ง');
+      if (previewBodyEl) previewBodyEl.focus();
+      return;
+    }
+
+    const isEdited = Boolean(originalEmailBodyHtml && editedBodyHtml !== sanitizeEditableEmailHtml(originalEmailBodyHtml));
+
     const btnModal = document.getElementById('btnConfirmSendEmail');
     btnModal.disabled = true;
     btnModal.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังส่ง...`;
@@ -1379,11 +1530,25 @@
     try {
       const res = await callGasPost('sendadminemail', {
         rowId: sheetRow,
-        adminUsername: currentAdmin.username || 'Admin'
+        adminUsername: currentAdmin.username || 'Admin',
+        bodyHtml: editedBodyHtml,
+        customBodyHtml: editedBodyHtml,
+        htmlBody: editedBodyHtml,
+        customBodyText: editedBodyText,
+        body: editedBodyText,
+        isCustomBody: isEdited,
+        skipAttachments: true,
+        includeFiles: false,
+        attachFiles: false
       });
 
       closeEmailPreviewModal();
       if (res && res.success) {
+        const drafts = getEmailDraftsMap();
+        if (drafts[String(sheetRow)]) {
+          delete drafts[String(sheetRow)];
+          saveEmailDraftsMap(drafts);
+        }
         alert(res.message);
         emailSentRows[sheetRow] = true;
         const invMap = getInvalidatedEmailMap();
@@ -1413,7 +1578,12 @@
   }
 
   function closeEmailPreviewModal() {
+    if (emailDraftAutoSaveTimer) clearTimeout(emailDraftAutoSaveTimer);
+    saveEmailDraft(false);
     document.getElementById('emailPreviewModal').classList.add('hidden');
+    const previewBodyEl = document.getElementById('previewEmailBody');
+    if (previewBodyEl) previewBodyEl.setAttribute('contenteditable', 'false');
+    originalEmailBodyHtml = '';
     currentEmailRowTarget = null;
   }
 
@@ -1521,7 +1691,7 @@
     if (!forceFresh) {
       try {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-        if (cached && cached.success && cached.rejectedExcluded) {
+        if (cached && cached.success && cached.approvedOnlyActual) {
           hasCached = true;
           renderQuotaOverview(cached);
         }
@@ -1538,17 +1708,18 @@
 
     try {
       let res = await callGasGet('getallquota', {}, { fresh: forceFresh });
-      if (res && res.success && !res.rejectedExcluded && Array.isArray(res.data)) {
+      if (res && res.success && !res.approvedOnlyActual && Array.isArray(res.data)) {
         // Fallback exclusion if direct GAS was used instead of /api/gas proxy
         try {
           const apps = adminDataList.length ? adminDataList : await callGasGet('getapplications', { username: '', role: 'admin' });
-          const rejectedWithSection = (Array.isArray(apps) ? apps : []).filter(item => {
+          const nonApprovedWithSection = (Array.isArray(apps) ? apps : []).filter(item => {
             const st = String(item.reviewStatus || item.status || '').toLowerCase().trim();
             const sec = String(item.selectedSection || '').trim();
-            return (st === 'rejected' || st === 'ไม่อนุมัติ') && sec && sec !== '-';
+            const isApproved = (st === 'reviewed' || st === 'approved' || st === 'อนุมัติแล้ว');
+            return !isApproved && sec && sec !== '-';
           });
-          if (rejectedWithSection.length) {
-            const reviewers = Array.from(new Set(rejectedWithSection.map(x => String(x.reviewerUsername || '').trim()).filter(u => u && u !== '-')));
+          if (nonApprovedWithSection.length) {
+            const reviewers = Array.from(new Set(nonApprovedWithSection.map(x => String(x.reviewerUsername || '').trim()).filter(u => u && u !== '-')));
             const revAffMap = {};
             await Promise.all(reviewers.map(async (u) => {
               try {
@@ -1557,7 +1728,7 @@
               } catch (e) {}
             }));
             const deductMap = {};
-            rejectedWithSection.forEach(item => {
+            nonApprovedWithSection.forEach(item => {
               const aff = (item.affiliation && String(item.affiliation).trim()) || revAffMap[String(item.reviewerUsername || '').trim().toLowerCase()] || '';
               if (aff) deductMap[aff] = (deductMap[aff] || 0) + 1;
             });
@@ -1571,6 +1742,7 @@
             const totAct = res.data.reduce((s, r) => s + (Number(r.actual) || 0), 0);
             res.totals = { approved: totApp, actual: totAct, remaining: totApp - totAct };
             res.rejectedExcluded = true;
+            res.approvedOnlyActual = true;
           }
         } catch (e) {}
       }

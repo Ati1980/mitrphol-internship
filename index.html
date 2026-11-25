@@ -442,6 +442,29 @@
 
   <!-- VIEW 1: STUDENT FORM SECTION -->
   <div id="studentView" class="relative z-10 max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto mt-6 lg:mt-8 px-4 lg:px-8">
+    <!-- LINE / In-App Browser Helper Banner (shown only inside LINE or social WebViews) -->
+    <div id="inAppBrowserBanner" class="hidden mb-4 rounded-2xl p-3.5 sm:p-4 bg-gradient-to-r from-emerald-50/95 via-teal-50/95 to-sky-50/95 dark:from-emerald-950/75 dark:via-teal-950/75 dark:to-sky-950/75 border border-emerald-200/90 dark:border-emerald-700/60 shadow-md backdrop-blur-md">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-start sm:items-center gap-2.5 min-w-0">
+          <span class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5 sm:mt-0">
+            <i class="fa-solid fa-up-right-from-square text-xs"></i>
+          </span>
+          <div class="text-xs sm:text-sm text-slate-700 dark:text-slate-100 leading-snug">
+            <span class="font-bold text-emerald-700 dark:text-emerald-300">กำลังเปิดผ่านเบราว์เซอร์ในแอป (LINE)</span>
+            <span class="block text-[11px] sm:text-xs text-slate-500 dark:text-slate-300">หากกดเปิดกล้องถ่ายรูปไม่ได้ แนะนำให้เปิดหน้านี้ผ่าน Chrome หรือ Safari</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <a id="inAppExternalLink" href="#" class="flex-1 sm:flex-initial text-center px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition active:scale-95 whitespace-nowrap">
+            <i class="fa-brands fa-chrome mr-1"></i> เปิดใน Chrome / Safari
+          </a>
+          <button type="button" onclick="document.getElementById('inAppBrowserBanner').classList.add('hidden')" aria-label="ปิดแถบแจ้งเตือน" class="w-8 h-8 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-slate-700 flex items-center justify-center text-xs transition">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <form id="appForm" onsubmit="event.preventDefault();" class="space-y-6 lg:space-y-8">
 
       <!-- Form Completion Progress Bar -->
@@ -700,15 +723,22 @@
               <img id="profilePreviewImg" class="w-full h-full object-cover hidden">
             </div>
             <div class="space-y-2 flex-1 min-w-0">
-              <input type="file" id="fileInput-Profile" accept="image/*" class="hidden" onchange="handleProfileUpload(this)">
-              <input type="file" id="fileInput-ProfileCapture" accept="image/*" capture="user" class="hidden" onchange="handleProfileUpload(this)">
+              <input type="file" id="fileInput-Profile" accept="image/*" class="sr-only" onchange="handleProfileUpload(this)">
+              <input type="file" id="fileInput-ProfileCapture" accept="image/*" capture="user" class="sr-only" onchange="handleProfileUpload(this)">
               <div class="flex flex-wrap items-center gap-2">
-                <button type="button" onclick="openProfileCameraModal()" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
+                <button id="btnOpenCameraModal" type="button" onclick="openProfileCameraModal()" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
                   <i class="fa-solid fa-camera mr-1.5 text-brand-500"></i> ถ่ายรูปจากกล้อง
                 </button>
-                <button type="button" onclick="document.getElementById('fileInput-Profile').click()" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
+                <label id="lblNativeCameraCapture" for="fileInput-ProfileCapture" class="hidden cursor-pointer inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
+                  <i class="fa-solid fa-camera mr-1.5 text-brand-500"></i> ถ่ายรูปจากกล้อง
+                </label>
+                <label for="fileInput-Profile" class="cursor-pointer inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
                   <i class="fa-solid fa-image mr-1.5 text-indigo-500"></i> เลือกรูปภาพ
-                </button>
+                </label>
+              </div>
+              <div id="lineCameraHint" class="hidden text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-700/50 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                <span><i class="fa-solid fa-circle-info mr-1"></i>หากกล้องไม่เปิดใน LINE ให้เปิดผ่านเบราว์เซอร์หลัก</span>
+                <a id="lineCameraExternalLink" href="#" class="font-bold text-emerald-700 dark:text-emerald-300 underline whitespace-nowrap">เปิดใน Chrome / Safari</a>
               </div>
               <button type="button" id="delBtn-Profile" onclick="removeProfileImage()" class="px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition hidden block">
                 <i class="fa-solid fa-trash-can mr-1"></i> ลบรูปภาพ
@@ -804,12 +834,15 @@
             </div>
             <p id="cameraErrorText" class="text-xs text-slate-200 leading-relaxed">ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้กล้องหรือเลือกรูปภาพจากเครื่อง</p>
             <div class="flex flex-wrap items-center justify-center gap-2">
-              <button type="button" onclick="closeProfileCameraModal(); document.getElementById('fileInput-ProfileCapture').click();" class="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition">
+              <label for="fileInput-ProfileCapture" onclick="closeProfileCameraModal();" class="cursor-pointer px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition">
                 <i class="fa-solid fa-camera mr-1"></i> เปิดกล้องมือถือ
-              </button>
-              <button type="button" onclick="closeProfileCameraModal(); document.getElementById('fileInput-Profile').click();" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition">
+              </label>
+              <label for="fileInput-Profile" onclick="closeProfileCameraModal();" class="cursor-pointer px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition">
                 <i class="fa-solid fa-image mr-1"></i> เลือกรูปจากเครื่อง
-              </button>
+              </label>
+              <a id="cameraModalExternalLink" href="#" class="hidden px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition">
+                <i class="fa-brands fa-chrome mr-1"></i> เปิดใน Chrome / Safari
+              </a>
             </div>
           </div>
         </div>
@@ -1322,7 +1355,69 @@
       }
     }
 
+    function isLineInAppBrowser() {
+      return /\bLine\//i.test(navigator.userAgent || '');
+    }
+
+    function isInAppBrowser() {
+      return /\bLine\/|FBAN|FBAV|Instagram|MicroMessenger|Messenger|TikTok/i.test(navigator.userAgent || '');
+    }
+
+    function getExternalBrowserUrl() {
+      try {
+        const currentUrl = new URL(window.location.href);
+        const isAndroid = /Android/i.test(navigator.userAgent || '');
+        if (isLineInAppBrowser() && !currentUrl.searchParams.has('openExternalBrowser')) {
+          currentUrl.searchParams.set('openExternalBrowser', '1');
+          return currentUrl.toString();
+        }
+        if (isAndroid) {
+          const clean = new URL(window.location.href);
+          clean.searchParams.delete('openExternalBrowser');
+          const scheme = clean.protocol.replace(':', '') || 'https';
+          const fallback = encodeURIComponent(clean.toString());
+          return `intent://${clean.host}${clean.pathname}${clean.search}${clean.hash}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+        }
+        currentUrl.searchParams.set('openExternalBrowser', '1');
+        return currentUrl.toString();
+      } catch (e) {
+        const href = window.location.href;
+        return href + (href.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
+      }
+    }
+
+    function initInAppBrowserCameraSupport() {
+      if (!isInAppBrowser()) return;
+      const extUrl = getExternalBrowserUrl();
+      ['inAppExternalLink', 'lineCameraExternalLink', 'cameraModalExternalLink'].forEach((id) => {
+        const link = document.getElementById(id);
+        if (link) link.setAttribute('href', extUrl);
+      });
+
+      document.getElementById('inAppBrowserBanner')?.classList.remove('hidden');
+      document.getElementById('lineCameraHint')?.classList.remove('hidden');
+      document.getElementById('cameraModalExternalLink')?.classList.remove('hidden');
+
+      // Use native <label for="fileInput-ProfileCapture"> in LINE / in-app WebViews
+      // because WebRTC getUserMedia is restricted inside LINE's internal browser.
+      document.getElementById('btnOpenCameraModal')?.classList.add('hidden');
+      document.getElementById('lblNativeCameraCapture')?.classList.remove('hidden');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initInAppBrowserCameraSupport);
+    } else {
+      initInAppBrowserCameraSupport();
+    }
+
     function openProfileCameraModal() {
+      if (isInAppBrowser()) {
+        const capInput = document.getElementById('fileInput-ProfileCapture');
+        if (capInput) {
+          capInput.click();
+          return;
+        }
+      }
       const modal = document.getElementById('cameraModal');
       if (!modal) {
         document.getElementById('fileInput-ProfileCapture').click();

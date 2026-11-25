@@ -1,0 +1,1102 @@
+/**
+ * ============================================================================
+ * ระบบขอฝึกงาน - กลุ่มมิตรผล (Mitr Phol Internship Web App)
+ * Backend Google Apps Script (Code.gs) - REST API Mode สำหรับ Vercel + Power Automate
+ * ============================================================================
+ */
+
+var UPLOAD_FOLDER_ID = "1VnpN6wLBF3OTnQrzB7L4ZkTCgJHP30ie";
+
+// Flow 1: สำหรับส่งคำขออนุมัติไปยังหัวหน้างาน
+var POWER_AUTOMATE_WEBHOOK_URL = "https://default097b580bb474487c888346e0bb1b5c.11.environment.api.powerplatform.com/powerautomate/automations/direct/cu/22/workflows/ba4fbe1a77804432960f979f40201db9/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=F7THGE9G78VHDEkK8RaiRkn6wqSFU45uYAgLpgUoDGc";
+
+// Flow 2: สำหรับส่งอีเมลแจ้งผลไปยังนักศึกษาและสถาบัน
+var POWER_AUTOMATE_SEND_EMAIL_URL = "https://default097b580bb474487c888346e0bb1b5c.11.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/24/workflows/85460c4fab6c4255bde7cef04ecf14b9/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=aPUU9fMZcYXv8bT9L89chYUXlUzzm9ZOgJ9U6VTRikM";
+
+/**
+ * ============================================================================
+ * Web App Routing (GET & POST API สำหรับ Vercel และ Power Automate)
+ * ============================================================================
+ */
+function doGet(e) {
+  try {
+    var params = (e && e.parameter) || {};
+    var action = String(params.action || '').trim().toLowerCase();
+
+    // 1. รองรับ Callback จาก Power Automate ผ่าน HTTP GET
+    if (action === 'powerautomatecallback') {
+      return handleAutomateCallback(params);
+    }
+
+    // 2. API สำหรับหน้าเว็บ Vercel (GET Requests)
+    if (action === 'getapplications') {
+      return jsonResponse(getApplicationsList(params.username, params.role));
+    }
+
+    if (action === 'getuserquota') {
+      return jsonResponse(getUserQuota(params.username));
+    }
+
+    if (action === 'getallquota') {
+      return jsonResponse(getAllQuotaOverview());
+    }
+
+    if (action === 'getemailpreview') {
+      return jsonResponse(getEmailPreviewData(params.rowId));
+    }
+
+    // กรณีเปิด URL ตรงๆ
+    return jsonResponse({
+      success: true,
+      message: "Mitr Phol Internship API is running.",
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return jsonResponse({
+      success: false,
+      message: "doGet Error: " + String(err)
+    });
+  }
+}
+
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse({
+        success: false,
+        message: "Missing POST body"
+      });
+    }
+
+    var data = JSON.parse(e.postData.contents);
+    var action = String(data.action || "").trim().toLowerCase();
+
+    // 1. Callback จาก Power Automate
+    if (action === "powerautomatecallback") {
+      return handleAutomateCallback(data);
+    }
+
+    // 2. API สำหรับหน้าเว็บ Vercel (POST Requests)
+    if (action === "login") {
+      return jsonResponse(checkCompanyLogin(data.username, data.password));
+    }
+
+    if (action === "submitform") {
+      return jsonResponse(processForm(data.formData));
+    }
+
+    if (action === "claim") {
+      return jsonResponse(claimApplication(data.rowId, data.reviewerName));
+    }
+
+    if (action === "usercancelclaim") {
+      return jsonResponse(userCancelClaim(data.rowId, data.username));
+    }
+
+    if (action === "adminreset") {
+      return jsonResponse(adminResetStatus(data.rowId, data.adminUsername));
+    }
+
+    if (action === "sendadminemail") {
+      return jsonResponse(sendAdminNotificationEmail(data.rowId, data.adminUsername));
+    }
+
+    if (action === "updatequota") {
+      return jsonResponse(updateQuotaApproved(data.updatedList, data.adminName));
+    }
+
+    return jsonResponse({
+      success: false,
+      message: "Unknown action",
+      action: action
+    });
+
+  } catch (err) {
+    console.error("doPost Error: " + err);
+    return jsonResponse({
+      success: false,
+      message: String(err)
+    });
+  }
+}
+
+/**
+ * Helper JSON Response
+ */
+function jsonResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * ============================================================================
+ * Power Automate Callback Handler
+ * ============================================================================
+ */
+function handleAutomateCallback(params) {
+  var lock = LockService.getScriptLock();
+
+  try {
+    var rowId = parseInt(params.sheetRow, 10);
+    var outcome = String(params.outcome || "").trim().toLowerCase();
+    var approverName = String(params.approverName || "").trim();
+    var approverEmail = String(params.approverEmail || "").trim();
+    var requesterEmail = String(params.requesterEmail || "").trim();
+    var applicantName = String(params.applicantName || "นักศึกษาฝึกงาน").trim();
+
+    if (!rowId || rowId < 2) {
+      return jsonResponse({
+        success: false,
+        message: "Invalid sheetRow",
+        sheetRow: params.sheetRow
+      });
+    }
+
+    if (outcome !== "approve" && outcome !== "reject") {
+      return jsonResponse({
+        success: false,
+        message: "Invalid outcome",
+        outcome: params.outcome
+      });
+    }
+
+    if (!approverName) {
+      approverName = approverEmail || "Approver";
+    }
+
+    if (!lock.tryLock(10000)) {
+      return jsonResponse({
+        success: false,
+        message: "System busy. Please retry later."
+      });
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("ข้อมูลผู้สมัคร") || ss.getSheetByName("Applications");
+
+    if (!sheet) {
+      return jsonResponse({
+        success: false,
+        message: "Application sheet not found"
+      });
+    }
+
+    if (rowId > sheet.getLastRow()) {
+      return jsonResponse({
+        success: false,
+        message: "sheetRow exceeds last row",
+        sheetRow: rowId
+      });
+    }
+
+    var isApproved = outcome === "approve";
+    var statusValue = isApproved ? "reviewed" : "rejected";
+    var statusText = isApproved ? "อนุมัติแล้ว" : "ไม่อนุมัติ";
+
+    // Col U = สถานะ (21), Col W = วันที่พิจารณา (23)
+    sheet.getRange(rowId, 21).setValue(statusValue);
+    sheet.getRange(rowId, 23).setValue(new Date());
+
+    SpreadsheetApp.flush();
+
+    logActionHistory(
+      "PowerAutomate_" + (isApproved ? "Approve" : "Reject"),
+      rowId,
+      approverName,
+      "ผลพิจารณา: " + statusText + (approverEmail ? " | " + approverEmail : "")
+    );
+
+    // ส่งแจ้งเตือนผู้ยื่นเรื่อง (Requester)
+    var emailSent = false;
+    if (requesterEmail && requesterEmail.indexOf("@") > 0) {
+      sendResultEmailToRequester(
+        requesterEmail,
+        applicantName,
+        isApproved,
+        approverName
+      );
+      emailSent = true;
+    }
+
+    return jsonResponse({
+      success: true,
+      message: "Approval result processed",
+      sheetRow: rowId,
+      outcome: isApproved ? "Approve" : "Reject",
+      status: statusValue,
+      approverName: approverName,
+      requesterEmail: requesterEmail,
+      emailAttempted: emailSent
+    });
+
+  } catch (err) {
+    console.error("handleAutomateCallback Error: " + err);
+    return jsonResponse({
+      success: false,
+      message: String(err),
+      sheetRow: params.sheetRow || null
+    });
+  } finally {
+    if (lock.hasLock()) {
+      lock.releaseLock();
+    }
+  }
+}
+
+function sendResultEmailToRequester(toEmail, applicantName, isApproved, approverName) {
+  try {
+    var subject = (isApproved ? '✅ [อนุมัติแล้ว] ' : '❌ [ไม่อนุมัติ] ') + 'ผลการขอรับนักศึกษาฝึกงาน: ' + applicantName;
+    var badgeColor = isApproved ? '#059669' : '#dc2626';
+    var badgeText = isApproved ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ';
+
+    var htmlBody = 
+      '<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px;">' +
+        '<div style="text-align: center; margin-bottom: 20px;">' +
+          '<span style="background-color: ' + badgeColor + '; color: white; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 14px;">' + badgeText + '</span>' +
+        '</div>' +
+        '<h3 style="color: #0f172a; text-align: center; margin-top: 0;">แจ้งผลการพิจารณารับนักศึกษาเข้าฝึกงาน</h3>' +
+        '<p>เรียน ผู้รับผิดชอบใบสมัคร,</p>' +
+        '<p>ใบสมัครนักศึกษา: <strong>' + applicantName + '</strong> ได้รับการพิจารณาผลเรียบร้อยแล้ว โดยมีรายละเอียดดังนี้:</p>' +
+        '<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin: 15px 0;">' +
+          '<p style="margin: 4px 0;"><strong>สถานะ:</strong> <span style="color: ' + badgeColor + '; font-weight: bold;">' + badgeText + '</span></p>' +
+          '<p style="margin: 4px 0;"><strong>ผู้อนุมัติ:</strong> ' + approverName + '</p>' +
+          '<p style="margin: 4px 0;"><strong>วันที่ดำเนินการ:</strong> ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss') + '</p>' +
+        '</div>' +
+        '<p style="font-size: 13px; color: #64748b;">คุณสามารถเข้าสู่ระบบเพื่อตรวจสอบสถานะล่าสุดได้ตลอดเวลา</p>' +
+        '<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">' +
+        '<p style="font-size: 12px; color: #94a3b8; text-align: center;">Mitr Phol Internship Management</p>' +
+      '</div>';
+
+    MailApp.sendEmail({
+      to: toEmail,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+  } catch(e) {
+    Logger.log('Send result email error: ' + e.toString());
+  }
+}
+
+/**
+ * ============================================================================
+ * Applications Data Functions
+ * ============================================================================
+ */
+
+function getUserData(username, role) {
+  return getApplicationsList(username, role);
+}
+
+function getApplicationsList(username, role) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('ข้อมูลผู้สมัคร') || ss.getSheetByName('Applications');
+    if (!sheet || sheet.getLastRow() <= 1) return [];
+
+    var curUser = String(username || '').trim().toLowerCase();
+    var userRole = String(role || '').trim().toLowerCase();
+
+    var isAdmin = (userRole === 'admin');
+    if (!isAdmin && curUser) {
+      isAdmin = (getUserRoleFromSheet(curUser) === 'admin');
+    }
+
+    var lastRow = sheet.getLastRow();
+    var maxCols = Math.max(sheet.getLastColumn(), 27);
+    var data = sheet.getRange(2, 1, lastRow - 1, maxCols).getValues();
+    var result = [];
+
+    var approverMap = getApproverDisplayMap();
+
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      if (!row[2] && !row[6] && !row[4]) continue;
+
+      var rawStatus = String(row[20] || '').trim().toLowerCase();
+      var status = (!rawStatus || rawStatus === 'unassigned') ? 'unassigned' : rawStatus;
+      var reviewer = String(row[21] || '').trim();
+      var reviewerNormalized = reviewer.toLowerCase();
+
+      var isUnassigned = (status === 'unassigned' || !reviewer || reviewer === '-');
+      var isMyItem = (reviewerNormalized === curUser);
+
+      if (!isAdmin && curUser && !isUnassigned && !isMyItem) {
+        continue;
+      }
+
+      var displayApprover = '-';
+      if (!isUnassigned) {
+        displayApprover = approverMap[reviewerNormalized] || reviewer;
+      }
+
+      var rawProfileUrl = String(row[18] || '').trim();
+      var directProfileUrl = formatDriveImageUrl(rawProfileUrl);
+
+      result.push({
+        id: i + 1,
+        sheetRow: i + 2,
+        timestamp: (row[0] instanceof Date) ? Utilities.formatDate(row[0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss') : String(row[0] || ''),
+        location: String(row[1] || ''),
+        fullName: String(row[2] || ''),
+        nickName: String(row[3] || ''),
+        phone: String(row[4] || ''),
+        lineId: String(row[5] || ''),
+        emailStudent: String(row[6] || ''),
+        emailInst: String(row[7] || ''),
+        address: String(row[8] || ''),
+        degree: String(row[9] || ''),
+        institution: String(row[10] || ''),
+        major: String(row[11] || ''),
+        startDate: (row[12] instanceof Date) ? formatDate(row[12]) : String(row[12] || ''),
+        endDate: (row[13] instanceof Date) ? formatDate(row[13]) : String(row[13] || ''),
+        workUnit: String(row[14] || ''),
+        skills: String(row[15] || ''),
+        emergencyName: String(row[16] || ''),
+        emergencyPhone: String(row[17] || ''),
+        profileImageLink: directProfileUrl,
+        fileLinks: String(row[19] || ''),
+        reviewStatus: status,
+        status: status,
+        reviewerUsername: reviewer,
+        approverDisplayName: displayApprover,
+        reviewedAt: (row[22] instanceof Date) ? Utilities.formatDate(row[22], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss') : String(row[22] || ''),
+        selectedDept: String(row[23] || '-'),    // Col X
+        selectedSection: String(row[24] || '-'),  // Col Y
+        emailSentStatus: String(row[26] || '')    // Col AA (Index 26 = คอลัมน์ที่ 27)
+      });
+    }
+
+    return result.reverse();
+  } catch (error) {
+    Logger.log('getApplicationsList Error: ' + error.toString());
+    return { success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message };
+  }
+}
+
+function getApproverDisplayMap() {
+  var map = {};
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('User') || ss.getSheetByName('CompanyUsers');
+    if (!sheet) return map;
+    var data = sheet.getDataRange().getValues();
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var empId = String(row[0] || '').trim().toLowerCase();
+      var userEmail = String(row[10] || '').trim().toLowerCase();
+      var userPrefix = userEmail.split('@')[0];
+      var approverName = String(row[11] || '').trim();
+      var approverEmail = String(row[12] || '').trim().toLowerCase();
+
+      if (approverName) {
+        if (empId) map[empId] = approverName;
+        if (userEmail) map[userEmail] = approverName;
+        if (userPrefix) map[userPrefix] = approverName;
+        if (approverEmail) map[approverEmail] = approverName;
+      }
+    }
+  } catch(e) {}
+  return map;
+}
+
+function claimApplication(rowId, reviewerName) {
+  try {
+    var rId = parseInt(rowId, 10);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var appSheet = ss.getSheetByName('ข้อมูลผู้สมัคร') || ss.getSheetByName('Applications');
+    if (!appSheet) return { success: false, message: 'ไม่พบชีตข้อมูลผู้สมัคร' };
+
+    var currentReviewer = appSheet.getRange(rId, 22).getValue();
+    if (currentReviewer && String(currentReviewer).trim() !== '' && String(currentReviewer).trim() !== '-') {
+      return { success: false, message: 'ใบสมัครนี้มีผู้รับเรื่องแล้ว: ' + currentReviewer };
+    }
+
+    // ข้อมูลจากชีต User
+    var userSheet = ss.getSheetByName('User') || ss.getSheetByName('CompanyUsers');
+    var approverName = '';
+    var approverEmail = '';
+    var requesterEmail = '';
+    var userFullName = reviewerName;
+    var userDept = '-';       // ฝ่าย (Col F ในชีต User)
+    var userSection = '-';    // แผนก (Col I ในชีต User)
+    var userAffiliation = '-';// สังกัด (Col Q ในชีต User - Index 16)
+
+    if (userSheet) {
+      var uData = userSheet.getDataRange().getValues();
+      var cleanReviewer = String(reviewerName || '').trim().toLowerCase();
+
+      for (var i = 1; i < uData.length; i++) {
+        var row = uData[i];
+        var empId = String(row[0] || '').trim().toLowerCase();
+        var dbEmail = String(row[10] || '').trim().toLowerCase();
+        var emailPrefix = dbEmail.split('@')[0];
+
+        if (cleanReviewer === empId || cleanReviewer === dbEmail || cleanReviewer === emailPrefix) {
+          var title = String(row[1] || '').trim();
+          var fName = String(row[2] || '').trim();
+          var lName = String(row[3] || '').trim();
+          if (fName || lName) userFullName = (title + ' ' + fName + ' ' + lName).trim();
+
+          userDept = String(row[5] || '-').trim();        // Col F (index 5) = ฝ่าย
+          userSection = String(row[8] || '-').trim();     // Col I (index 8) = แผนก
+          userAffiliation = String(row[16] || '-').trim(); // Col Q (index 16) = สังกัด
+
+          requesterEmail = String(row[10] || '').trim();
+          approverName = String(row[11] || '').trim();
+          approverEmail = String(row[12] || '').trim();
+          break;
+        }
+      }
+    }
+
+    // บันทึกสถานะ และ ผู้รับเรื่อง
+    appSheet.getRange(rId, 21).setValue('pending');
+    appSheet.getRange(rId, 22).setValue(reviewerName);
+    appSheet.getRange(rId, 23).setValue(new Date());
+
+    // บันทึก ฝ่าย (Col X = 24), แผนก (Col Y = 25), และ สังกัด (Col Z = 26)
+    appSheet.getRange(rId, 24).setValue(userDept);
+    appSheet.getRange(rId, 25).setValue(userSection);
+    appSheet.getRange(rId, 26).setValue(userAffiliation);
+
+    logActionHistory('Claim', rId, reviewerName, 'รับเรื่องรอการพิจารณา (สังกัด: ' + userAffiliation + ')');
+
+    var applicantName = String(appSheet.getRange(rId, 3).getValue() || '');
+    var institution = String(appSheet.getRange(rId, 11).getValue() || '');
+    var major = String(appSheet.getRange(rId, 12).getValue() || '');
+    var workUnit = String(appSheet.getRange(rId, 15).getValue() || '');
+    var rawFileLinks = String(appSheet.getRange(rId, 20).getValue() || '').trim(); // Col T
+
+    // ดึงไฟล์แนบจริงจาก Google Drive แปลงเป็น Base64
+    var attachmentsList = [];
+    if (rawFileLinks) {
+      var lines = rawFileLinks.split('\n');
+      for (var k = 0; k < lines.length; k++) {
+        var line = lines[k].trim();
+        if (!line) continue;
+        
+        var fileName = 'เอกสารแนบ_' + (k + 1);
+        var fileUrl = line;
+        
+        var parts = line.split(': http');
+        if (parts.length >= 2) {
+          fileName = parts[0].trim();
+          fileUrl = 'http' + parts.slice(1).join(': http').trim();
+        }
+
+        // ดึง File ID จาก URL Google Drive
+        var fileId = '';
+        var matchD = fileUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (matchD && matchD[1]) {
+          fileId = matchD[1];
+        } else {
+          var matchId = fileUrl.match(/id=([a-zA-Z0-9_-]+)/);
+          if (matchId && matchId[1]) fileId = matchId[1];
+        }
+
+        if (fileId) {
+          try {
+            var driveFile = DriveApp.getFileById(fileId);
+            var blob = driveFile.getBlob();
+            var realName = driveFile.getName();
+            var ext = realName.indexOf('.') !== -1 ? realName.substring(realName.lastIndexOf('.')) : '';
+            var finalName = fileName.indexOf('.') !== -1 ? fileName : (fileName + ext);
+
+            attachmentsList.push({
+              name: finalName,
+              content: Utilities.base64Encode(blob.getBytes())
+            });
+          } catch(errDrive) {
+            Logger.log('ไม่สามารถดึงไฟล์แนบ ID ' + fileId + ': ' + errDrive.toString());
+          }
+        }
+      }
+    }
+
+    var automateStatus = '';
+    if (POWER_AUTOMATE_WEBHOOK_URL && POWER_AUTOMATE_WEBHOOK_URL.indexOf('http') === 0) {
+      var payload = {
+        action: "claimApprovalRequest",
+        sheetRow: rId,
+        applicantName: applicantName,
+        institution: institution,
+        major: major,
+        workUnit: workUnit,
+        approverName: approverName,
+        approverEmail: approverEmail,
+        requesterName: userFullName,
+        requesterEmail: requesterEmail,
+        requesterDepartment: userDept,
+        requesterSection: userSection,
+        attachments: attachmentsList,
+        webAppUrl: getWebAppUrl()
+      };
+
+      try {
+        var options = {
+          method: 'post',
+          contentType: 'application/json',
+          payload: JSON.stringify(payload),
+          muteHttpExceptions: true
+        };
+        UrlFetchApp.fetch(POWER_AUTOMATE_WEBHOOK_URL, options);
+        automateStatus = ' (ส่งคำขออนุมัติไปยัง ' + (approverName || approverEmail) + ' สำเร็จ)';
+      } catch (err) {
+        Logger.log('Power Automate Error: ' + err.toString());
+        automateStatus = ' (เชื่อมต่อ Automate ขัดข้อง: ' + err.message + ')';
+      }
+    }
+
+    return { 
+      success: true, 
+      message: 'รับ นศ. ฝึกงาน เรียบร้อยแล้ว' + automateStatus,
+      approverName: approverName
+    };
+  } catch (error) {
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + error.toString() };
+  }
+}
+
+function userCancelClaim(rowId, currentUsername) {
+  try {
+    var rId = parseInt(rowId, 10);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('ข้อมูลผู้สมัคร') || ss.getSheetByName('Applications');
+    if (!sheet) return { success: false, message: 'ไม่พบชีตข้อมูล' };
+
+    var reviewer = String(sheet.getRange(rId, 22).getValue() || '').trim().toLowerCase();
+    var cleanUser = String(currentUsername || '').trim().toLowerCase();
+
+    if (reviewer !== cleanUser) {
+      return { success: false, message: 'คุณไม่มีสิทธิ์ยกเลิกรายการที่ไม่ได้เป็นผู้รับเรื่อง' };
+    }
+
+    sheet.getRange(rId, 21).setValue('unassigned');
+    sheet.getRange(rId, 22).setValue('-');
+    sheet.getRange(rId, 23).setValue('');
+    sheet.getRange(rId, 24).setValue('-'); // ล้าง ฝ่าย
+    sheet.getRange(rId, 25).setValue('-'); // ล้าง แผนก
+    sheet.getRange(rId, 26).setValue('-'); // ล้าง สังกัด (Col Z)
+
+    logActionHistory('UserCancelClaim', rId, currentUsername, 'ยกเลิกการรับเรื่อง คืนเป็น unassigned');
+    return { success: true, message: 'ยกเลิกการรับเรื่องเรียบร้อยแล้ว' };
+  } catch (error) {
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + error.toString() };
+  }
+}
+
+function adminResetStatus(rowId, adminUsername) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('ข้อมูลผู้สมัคร') || ss.getSheetByName('Applications');
+    if (!sheet) return { success: false, message: 'ไม่พบชีตข้อมูล' };
+
+    var rId = parseInt(rowId, 10);
+    sheet.getRange(rId, 21).setValue('unassigned');
+    sheet.getRange(rId, 22).setValue('-');
+    sheet.getRange(rId, 23).setValue('');
+    sheet.getRange(rId, 24).setValue('-'); // ล้าง ฝ่าย
+    sheet.getRange(rId, 25).setValue('-'); // ล้าง แผนก
+    sheet.getRange(rId, 26).setValue('-'); // ล้าง สังกัด (Col Z)
+
+    logActionHistory('AdminReset', rId, adminUsername || 'Admin', 'ยกเลิกการอนุมัติ คืนเป็น unassigned');
+    return { success: true, message: 'ยกเลิกสถานะและคืนรายการเป็น นศ.ใหม่ เรียบร้อยแล้ว' };
+  } catch (err) {
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + err.toString() };
+  }
+}
+
+function getUserRoleFromSheet(username) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('User') || ss.getSheetByName('CompanyUsers');
+    if (!sheet) return 'user';
+    var data = sheet.getDataRange().getValues();
+    var cleanUser = String(username || '').trim().toLowerCase();
+
+    for (var i = 1; i < data.length; i++) {
+      var empId = String(data[i][0] || '').trim().toLowerCase();
+      var email = String(data[i][10] || '').trim().toLowerCase();
+      var emailPrefix = email.split('@')[0].toLowerCase();
+      var role = String(data[i][15] || 'user').trim().toLowerCase();
+
+      if (cleanUser === empId || cleanUser === email || cleanUser === emailPrefix) return role;
+    }
+  } catch(e) {}
+  return 'user';
+}
+
+function checkCompanyLogin(username, password) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('User') || ss.getSheetByName('CompanyUsers');
+    if (!sheet) return { success: false, message: 'ไม่พบชีตผู้ใช้งาน (User)' };
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: false, message: 'ไม่พบข้อมูลผู้ใช้งานในระบบ' };
+
+    var cleanInputUser = String(username || '').trim().toLowerCase();
+    var cleanNormalizedUser = cleanInputUser.replace(/[\._-]/g, '');
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var empId = String(row[0] || '').trim();
+      var dbEmail = String(row[10] || '').trim().toLowerCase();
+      var emailPrefix = dbEmail.split('@')[0];
+      var normalizedPrefix = emailPrefix.replace(/[\._-]/g, '');
+      var role = String(row[15] || 'user').trim().toLowerCase();
+
+      var title = String(row[1] || '').trim();
+      var firstName = String(row[2] || '').trim();
+      var lastName = String(row[3] || '').trim();
+      var fullName = (firstName || lastName) ? (title + ' ' + firstName + ' ' + lastName).trim() : (empId || emailPrefix.toUpperCase());
+      var position = String(row[4] || '').trim();
+      var department = String(row[5] || '').trim();
+      var approverName = String(row[11] || '').trim();
+      var approverEmail = String(row[12] || '').trim();
+
+      if (
+        cleanInputUser === dbEmail ||
+        cleanInputUser === emailPrefix.toLowerCase() ||
+        cleanNormalizedUser === normalizedPrefix ||
+        cleanInputUser === empId.toLowerCase()
+      ) {
+        return {
+          success: true,
+          user: {
+            id: empId,
+            username: emailPrefix.toUpperCase(),
+            fullName: fullName,
+            position: position || 'เจ้าหน้าที่',
+            department: department,
+            companyName: department || 'กลุ่มมิตรผล',
+            email: row[10] || '',
+            approverName: approverName,
+            approverEmail: approverEmail,
+            role: role,
+            loginMode: role === 'admin' ? 'admin' : 'user'
+          }
+        };
+      }
+    }
+    return { success: false, message: 'ชื่อผู้ใช้ไม่ถูกต้อง หรือไม่พบในชีต User' };
+  } catch (error) {
+    return { success: false, message: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์: ' + error.toString() };
+  }
+}
+
+function processForm(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('ข้อมูลผู้สมัคร') || ss.getSheetByName('Applications');
+    if (!sheet) {
+      sheet = ss.insertSheet('ข้อมูลผู้สมัคร');
+      sheet.appendRow([
+        'ประทับเวลา', 'สถานที่สมัคร', 'ชื่อ-สกุล', 'ชื่อเล่น', 'เบอร์โทรศัพท์', 'Line ID',
+        'E-mail ตอบกลับนักศึกษา', 'E-mail ตอบกลับสถาบัน', 'ที่อยู่ตามทะเบียนบ้าน', 'วุฒิการศึกษา',
+        'สถาบันการศึกษา', 'สาขา', 'วันเริ่มต้น', 'วันสิ้นสุด', 'หน่วยงานที่ต้องการฝึกงาน',
+        'ความสามารถพิเศษ', 'ชื่อผู้ติดต่อฉุกเฉิน', 'เบอร์ผู้ติดต่อฉุกเฉิน', 'Profile',
+        'เอกสารแนบ', 'สถานะ', 'อนุมัติโดย', 'วันที่พิจารณา'
+      ]);
+    }
+
+    var parentFolder = getOrCreateUploadFolder('MitrPhol_Internship_Uploads');
+    var timeStampStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss');
+    var safeApplicantName = (data.fullName || 'Applicant').replace(/[^a-zA-Z0-9ก-๙_-]/g, '_');
+    var applicantFolder = parentFolder.createFolder(safeApplicantName + '_' + timeStampStr);
+    applicantFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    var profileImageUrl = '';
+    if (data.profileImage && data.profileImage.base64) {
+      var pFile = saveBase64File(applicantFolder, data.profileImage.name || 'Profile_Image.jpg', data.profileImage.base64);
+      if (pFile) profileImageUrl = pFile.getUrl();
+    }
+
+    var fileLinksList = [];
+    if (data.filesMap && typeof data.filesMap === 'object') {
+      for (var key in data.filesMap) {
+        var item = data.filesMap[key];
+        if (item && item.base64) {
+          var uploadedFile = saveBase64File(applicantFolder, item.name || (key + '_Document'), item.base64);
+          if (uploadedFile) fileLinksList.push(key + ': ' + uploadedFile.getUrl());
+        }
+      }
+    }
+
+    var now = new Date();
+    sheet.appendRow([
+      now, String(data.location || '').trim(), String(data.fullName || '').trim(), String(data.nickName || '').trim(),
+      String(data.phone || '').trim(), String(data.lineId || '').trim(), String(data.emailStudent || '').trim(),
+      String(data.emailInst || '').trim(), String(data.address || '').trim(), String(data.degree || '').trim(),
+      String(data.institution || '').trim(), String(data.major || '').trim(), data.startDate || '', data.endDate || '',
+      String(data.workUnit || '').trim(), String(data.skills || '').trim(), String(data.emergencyName || '').trim(),
+      String(data.emergencyPhone || '').trim(), profileImageUrl, fileLinksList.join('\n'), 'unassigned', '-', '',
+      '-', '-', '-' // Col X (ฝ่ายที่เลือก), Col Y (แผนกที่เลือก), Col Z (สังกัด)
+    ]);
+
+    return { success: true, message: 'ส่งข้อมูลการสมัครฝึกงานเรียบร้อยแล้ว' };
+  } catch (error) {
+    return { success: false, message: 'เกิดข้อผิดพลาด: ' + error.toString() };
+  }
+}
+
+function logActionHistory(action, rowId, operator, note) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var historySheet = ss.getSheetByName('ประวัติการเลือก');
+    if (!historySheet) {
+      historySheet = ss.insertSheet('ประวัติการเลือก');
+      historySheet.appendRow(['ประทับเวลา', 'การกระทำ', 'แถวข้อมูล (Row)', 'ผู้ดำเนินการ', 'หมายเหตุ']);
+    }
+    historySheet.appendRow([new Date(), action, rowId, operator, note]);
+  } catch (e) {}
+}
+
+function saveBase64File(folder, fileName, base64Data) {
+  var parts = base64Data.split(',');
+  var contentType = parts[0].split(':')[1].split(';')[0];
+  var decodedData = Utilities.base64Decode(parts[1]);
+  var blob = Utilities.newBlob(decodedData, contentType, fileName);
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file;
+}
+
+function getOrCreateUploadFolder(folderName) {
+  if (UPLOAD_FOLDER_ID) {
+    try {
+      return DriveApp.getFolderById(UPLOAD_FOLDER_ID);
+    } catch (e) {}
+  }
+  var folders = DriveApp.getFoldersByName(folderName);
+  if (folders.hasNext()) return folders.next();
+  var newFolder = DriveApp.createFolder(folderName);
+  newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return newFolder;
+}
+
+function formatDriveImageUrl(url) {
+  if (!url) return '';
+  var urlStr = String(url);
+  var fileId = '';
+  var matchD = urlStr.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchD && matchD[1]) fileId = matchD[1];
+  else {
+    var matchId = urlStr.match(/id=([a-zA-Z0-9_-]+)/);
+    if (matchId && matchId[1]) fileId = matchId[1];
+    else {
+      var matchAny = urlStr.match(/[-\w]{25,}/);
+      if (matchAny) fileId = matchAny[0];
+    }
+  }
+  return fileId ? ('https://lh3.googleusercontent.com/d/' + fileId) : urlStr;
+}
+
+function formatDate(dateObj) {
+  if (!dateObj) return '-';
+  if (!(dateObj instanceof Date)) {
+    var d = new Date(dateObj);
+    if (isNaN(d.getTime())) return String(dateObj);
+    dateObj = d;
+  }
+  var day = String(dateObj.getDate()).padStart(2, '0');
+  var month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  var year = dateObj.getFullYear();
+  return day + '/' + month + '/' + year;
+}
+
+function getWebAppUrl() {
+  return ScriptApp.getService().getUrl();
+}
+
+/**
+ * ============================================================================
+ * Email Preview & Power Automate Notification (ส่ง นศ. + สถาบัน)
+ * ============================================================================
+ */
+function getEmailPreviewData(rowId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('ข้อมูลผู้สมัคร') || ss.getSheetByName('Applications');
+    if (!sheet) return { success: false, message: 'ไม่พบชีตข้อมูลผู้สมัคร' };
+
+    var rId = parseInt(rowId, 10);
+    var rowData = sheet.getRange(rId, 1, 1, 23).getValues()[0];
+
+    var applicantName = String(rowData[2] || 'นักศึกษาฝึกงาน').trim();
+    var studentEmail = String(rowData[6] || '').trim();   // Col G: อีเมล นศ.
+    var instEmail = String(rowData[7] || '').trim();      // Col H: อีเมล สถาบัน
+    var location = String(rowData[1] || '-').trim();
+    var workUnit = String(rowData[14] || '-').trim();
+    var startDate = (rowData[12] instanceof Date) ? formatDate(rowData[12]) : String(rowData[12] || '-');
+    var endDate = (rowData[13] instanceof Date) ? formatDate(rowData[13]) : String(rowData[13] || '-');
+    var rawFiles = String(rowData[19] || '').trim();
+    var status = String(rowData[20] || '').trim().toLowerCase();
+    var reviewer = String(rowData[21] || '').trim();
+
+    var isApproved = (status === 'reviewed' || status === 'approved' || status === 'อนุมัติแล้ว');
+    var isRejected = (status === 'rejected' || status === 'ไม่อนุมัติ');
+
+    if (!isApproved && !isRejected) {
+      return { success: false, message: 'ใบสมัครนี้ยังไม่ได้อนุมัติหรือปฏิเสธ (สถานะ: ' + status + ')' };
+    }
+
+    var approverMap = getApproverDisplayMap();
+    var approverName = approverMap[reviewer.toLowerCase()] || reviewer || 'ฝ่ายทรัพยากรบุคคล';
+
+    var subject = (isApproved ? '✅ [อนุมัติแล้ว] ' : '❌ [ไม่อนุมัติ] ') + 'แจ้งผลการพิจารณารับนักศึกษาเข้าฝึกงาน - กลุ่มมิตรผล (' + applicantName + ')';
+    var badgeColor = isApproved ? '#059669' : '#dc2626';
+    var badgeText = isApproved ? 'ผ่านการพิจารณา (อนุมัติ)' : 'ไม่ผ่านการพิจารณา';
+
+    var bodyHtml = 
+      '<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; background: #ffffff;">' +
+        '<div style="text-align: center; margin-bottom: 20px;">' +
+          '<span style="background-color: ' + badgeColor + '; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 13px;">' + badgeText + '</span>' +
+        '</div>' +
+        '<h3 style="color: #0f172a; text-align: center; margin-top: 0; font-size: 18px;">แจ้งผลการพิจารณารับนักศึกษาเข้าฝึกงาน</h3>' +
+        '<p>เรียน คุณ <strong>' + applicantName + '</strong> และ อาจารย์ผู้ประสานงานประจำสถาบันการศึกษา,</p>' +
+        '<p>ทางกลุ่มมิตรผล ขอแจ้งผลการพิจารณาคำขอเข้ารับการฝึกงาน โดยมีรายละเอียดดังต่อไปนี้:</p>' +
+        '<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 16px 0; font-size: 13px;">' +
+          '<p style="margin: 4px 0;"><strong>ชื่อ-สกุล นักศึกษา:</strong> ' + applicantName + '</p>' +
+          '<p style="margin: 4px 0;"><strong>ผลการพิจารณา:</strong> <span style="color: ' + badgeColor + '; font-weight: bold;">' + badgeText + '</span></p>' +
+          '<p style="margin: 4px 0;"><strong>หน่วยงาน/สายงาน:</strong> ' + workUnit + '</p>' +
+          '<p style="margin: 4px 0;"><strong>สถานที่ปฏิบัติงาน:</strong> ' + location + '</p>' +
+          '<p style="margin: 4px 0;"><strong>ช่วงเวลาฝึกงาน:</strong> ' + startDate + ' ถึง ' + endDate + '</p>' +
+          '<p style="margin: 4px 0;"><strong>ผู้พิจารณา:</strong> ' + approverName + '</p>' +
+        '</div>' +
+        (isApproved 
+          ? '<p style="font-size: 13px; color: #334155;"><strong>ขั้นตอนถัดไป:</strong> ขอความกรุณาทางนักศึกษาและสถาบันการศึกษาดำเนินการจัดเตรียม <u>หนังสือส่งตัว / หนังสือขอความอนุเคราะห์ฝึกงานฉบับจริง</u> เพื่อส่งกลับมายังฝ่ายทรัพยากรบุคคลตามกำหนดเวลา</p>'
+          : '<p style="font-size: 13px; color: #64748b;">ทางกลุ่มมิตรผลขอขอบพระคุณท่านและสถาบันการศึกษาที่ให้ความสนใจและไว้วางใจสมัครเข้าร่วมฝึกงานกับเรา</p>') +
+        '<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">' +
+        '<p style="font-size: 12px; color: #94a3b8; text-align: center;">กลุ่มมิตรผล · Internship Administration</p>' +
+      '</div>';
+
+    var fileList = [];
+    if (rawFiles) {
+      rawFiles.split('\n').forEach(function(line) {
+        var parts = line.split(': http');
+        if (parts.length >= 2) {
+          fileList.push({ name: parts[0].trim(), url: 'http' + parts.slice(1).join(': http').trim() });
+        }
+      });
+    }
+
+    return {
+      success: true,
+      rowId: rId,
+      to: studentEmail,
+      cc: instEmail,
+      subject: subject,
+      bodyHtml: bodyHtml,
+      files: fileList,
+      applicantName: applicantName
+    };
+  } catch(err) {
+    return { success: false, message: 'ดึงข้อมูลพรีวิวไม่สำเร็จ: ' + err.toString() };
+  }
+}
+
+function sendAdminNotificationEmail(rowId, adminUsername) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('ข้อมูลผู้สมัคร') || ss.getSheetByName('Applications');
+    if (!sheet) return { success: false, message: 'ไม่พบชีตข้อมูล' };
+
+    var rId = parseInt(rowId, 10);
+    var preview = getEmailPreviewData(rId);
+
+    if (!preview || !preview.success) {
+      return { success: false, message: preview ? preview.message : 'ไม่สามารถดึงข้อมูลพรีวิวได้' };
+    }
+
+    if (!preview.to || preview.to.indexOf('@') === -1) {
+      return { success: false, message: 'ไม่พบอีเมลของนักศึกษาในระบบ (Col G)' };
+    }
+
+    if (!POWER_AUTOMATE_SEND_EMAIL_URL || POWER_AUTOMATE_SEND_EMAIL_URL.indexOf('http') !== 0) {
+      return { success: false, message: 'ไม่ได้ตั้งค่า POWER_AUTOMATE_SEND_EMAIL_URL ในระบบ' };
+    }
+
+    var payload = {
+      action: "sendResultToStudentAndInstitute",
+      sheetRow: rId,
+      applicantName: preview.applicantName,
+      toStudentEmail: preview.to,
+      ccInstituteEmail: preview.cc || "",
+      subject: preview.subject,
+      bodyHtml: preview.bodyHtml,
+      senderAdmin: adminUsername || "Admin",
+      timestamp: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+    };
+
+    var options = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    var response = UrlFetchApp.fetch(POWER_AUTOMATE_SEND_EMAIL_URL, options);
+    var resCode = response.getResponseCode();
+
+    if (resCode >= 200 && resCode < 300) {
+      sheet.getRange(rId, 27).setValue('ส่งแล้ว (' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm') + ')');
+
+      logActionHistory(
+        'AdminSendEmail_PowerAutomate', 
+        rId, 
+        adminUsername, 
+        'ส่งแจ้งผลผ่าน Power Automate ไปยัง ' + preview.to + (preview.cc ? ' (CC: ' + preview.cc + ')' : '')
+      );
+
+      return {
+        success: true,
+        message: 'ส่งผลการพิจารณาไปยังนักศึกษา (' + preview.to + ')' + (preview.cc ? ' และสำเนาสถาบัน (' + preview.cc + ')' : '') + ' เรียบร้อยแล้ว'
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Power Automate ปฏิเสธคำขอ (HTTP ' + resCode + '): ' + response.getContentText()
+      };
+    }
+
+  } catch(err) {
+    return { success: false, message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ Power Automate: ' + err.toString() };
+  }
+}
+
+/**
+ * ============================================================================
+ * Quota Management Functions
+ * ============================================================================
+ */
+function getUserQuota(username) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var userSheet = ss.getSheetByName('User') || ss.getSheetByName('CompanyUsers');
+    var quotaSheet = ss.getSheetByName('Quota');
+    
+    var defaultResult = { affiliation: '-', approved: 0, actual: 0, remaining: 0 };
+    if (!userSheet || !quotaSheet) return defaultResult;
+
+    var cleanUser = String(username || '').trim().toLowerCase();
+    var cleanNormalized = cleanUser.replace(/[\._-]/g, '');
+    var uData = userSheet.getDataRange().getValues();
+    var userAffiliation = '';
+
+    for (var i = 1; i < uData.length; i++) {
+      var row = uData[i];
+      var empId = String(row[0] || '').trim().toLowerCase();
+      var dbEmail = String(row[10] || '').trim().toLowerCase();
+      var emailPrefix = dbEmail.split('@')[0];
+      var normalizedPrefix = emailPrefix.replace(/[\._-]/g, '');
+
+      if (
+        cleanUser === dbEmail ||
+        cleanUser === emailPrefix ||
+        cleanNormalized === normalizedPrefix ||
+        cleanUser === empId
+      ) {
+        userAffiliation = String(row[16] || '').trim(); // Col Q = สังกัด
+        break;
+      }
+    }
+
+    if (!userAffiliation || userAffiliation === '-') {
+      return defaultResult;
+    }
+
+    var qData = quotaSheet.getDataRange().getValues();
+    for (var j = 1; j < qData.length; j++) {
+      var qRow = qData[j];
+      var qAffiliation = String(qRow[1] || '').trim(); // Col B = สังกัด
+
+      if (qAffiliation && (qAffiliation === userAffiliation || userAffiliation.indexOf(qAffiliation) !== -1 || qAffiliation.indexOf(userAffiliation) !== -1)) {
+        return {
+          affiliation: userAffiliation,
+          approved: Number(qRow[2]) || 0,   // Col C = อนุมัติ
+          actual: Number(qRow[3]) || 0,     // Col D = เกิดจริง
+          remaining: Number(qRow[4]) || 0   // Col E = คงเหลือ
+        };
+      }
+    }
+
+    return { affiliation: userAffiliation, approved: 0, actual: 0, remaining: 0 };
+  } catch (err) {
+    Logger.log('getUserQuota Error: ' + err.toString());
+    return { affiliation: '-', approved: 0, actual: 0, remaining: 0 };
+  }
+}
+
+function getAllQuotaOverview() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('Quota');
+    if (!sheet) return { success: false, message: 'ไม่พบชีต Quota' };
+
+    var data = sheet.getDataRange().getValues();
+    var list = [];
+    var totalApproved = 0;
+    var totalActual = 0;
+    var totalRemaining = 0;
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var name = String(row[1] || '').trim(); // Col B: สังกัด
+      if (!name || name === 'รวม' || name.indexOf('รวม') !== -1) continue;
+
+      var approved = Number(row[2]) || 0;  // Col C: อนุมัติ
+      var actual = Number(row[3]) || 0;    // Col D: เกิดจริง
+      var remaining = Number(row[4]) || 0; // Col E: คงเหลือ
+
+      totalApproved += approved;
+      totalActual += actual;
+      totalRemaining += remaining;
+
+      list.push({
+        rowNum: i + 1,
+        affiliation: name,
+        approved: approved,
+        actual: actual,
+        remaining: remaining
+      });
+    }
+
+    return {
+      success: true,
+      data: list,
+      totals: {
+        approved: totalApproved,
+        actual: totalActual,
+        remaining: totalRemaining
+      }
+    };
+  } catch (err) {
+    return { success: false, message: err.toString() };
+  }
+}
+
+function updateQuotaApproved(updatedList, adminName) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('Quota');
+    if (!sheet) return { success: false, message: 'ไม่พบชีต Quota' };
+
+    for (var i = 0; i < updatedList.length; i++) {
+      var item = updatedList[i];
+      var row = parseInt(item.rowNum, 10);
+      var newVal = Number(item.approved) || 0;
+      if (row > 1) {
+        sheet.getRange(row, 3).setValue(newVal); // บันทึกลง Col C
+      }
+    }
+    SpreadsheetApp.flush();
+
+    logActionHistory('UpdateQuota', '-', adminName || 'Admin', 'แก้ไขโควต้าอนุมัติภาพรวม');
+    return { success: true, message: 'บันทึกการแก้ไขโควต้าเรียบร้อยแล้ว' };
+  } catch (err) {
+    return { success: false, message: err.toString() };
+  }
+}

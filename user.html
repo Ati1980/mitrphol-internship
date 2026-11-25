@@ -722,7 +722,7 @@
     if (!forceFresh) {
       try {
         const cachedQuota = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-        if (cachedQuota && cachedQuota.rejectedExcluded) applyQuotaUI(cachedQuota);
+        if (cachedQuota && cachedQuota.approvedOnlyActual) applyQuotaUI(cachedQuota);
       } catch (e) {}
     }
 
@@ -1102,6 +1102,7 @@
       closeConfirmModal();
 
       if (r && r.success) {
+        try { sessionStorage.removeItem('mitrpholAllQuotaCache'); } catch (e) {}
         alert(r.message || 'รับเรื่องเรียบร้อยแล้ว');
         loadUserData(true);
         loadUserQuota(true);
@@ -1126,6 +1127,7 @@
       });
 
       if (r && r.success) {
+        try { sessionStorage.removeItem('mitrpholAllQuotaCache'); } catch (e) {}
         alert(r.message || 'ยกเลิกเรียบร้อยแล้ว');
         loadUserData(true);
         loadUserQuota(true);
@@ -1240,7 +1242,7 @@
     if (!forceFresh) {
       try {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-        if (cached && cached.success && cached.rejectedExcluded) {
+        if (cached && cached.success && cached.approvedOnlyActual) {
           hasCached = true;
           renderQuotaOverview(cached);
         }
@@ -1257,16 +1259,17 @@
 
     try {
       let res = await callGasGet('getallquota', {}, { fresh: forceFresh });
-      if (res && res.success && !res.rejectedExcluded && Array.isArray(res.data)) {
+      if (res && res.success && !res.approvedOnlyActual && Array.isArray(res.data)) {
         try {
-          const apps = userDataList.length ? userDataList : await callGasGet('getapplications', { username: '', role: 'admin' });
-          const rejectedWithSection = (Array.isArray(apps) ? apps : []).filter(item => {
+          const apps = await callGasGet('getapplications', { username: '', role: 'admin' });
+          const nonApprovedWithSection = (Array.isArray(apps) ? apps : []).filter(item => {
             const st = String(item.reviewStatus || item.status || '').toLowerCase().trim();
             const sec = String(item.selectedSection || '').trim();
-            return (st === 'rejected' || st === 'ไม่อนุมัติ') && sec && sec !== '-';
+            const isApproved = (st === 'reviewed' || st === 'approved' || st === 'อนุมัติแล้ว');
+            return !isApproved && sec && sec !== '-';
           });
-          if (rejectedWithSection.length) {
-            const reviewers = Array.from(new Set(rejectedWithSection.map(x => String(x.reviewerUsername || '').trim()).filter(u => u && u !== '-')));
+          if (nonApprovedWithSection.length) {
+            const reviewers = Array.from(new Set(nonApprovedWithSection.map(x => String(x.reviewerUsername || '').trim()).filter(u => u && u !== '-')));
             const revAffMap = {};
             await Promise.all(reviewers.map(async (u) => {
               try {
@@ -1275,7 +1278,7 @@
               } catch (e) {}
             }));
             const deductMap = {};
-            rejectedWithSection.forEach(item => {
+            nonApprovedWithSection.forEach(item => {
               const aff = (item.affiliation && String(item.affiliation).trim()) || revAffMap[String(item.reviewerUsername || '').trim().toLowerCase()] || '';
               if (aff) deductMap[aff] = (deductMap[aff] || 0) + 1;
             });
@@ -1289,6 +1292,7 @@
             const totAct = res.data.reduce((s, r) => s + (Number(r.actual) || 0), 0);
             res.totals = { approved: totApp, actual: totAct, remaining: totApp - totAct };
             res.rejectedExcluded = true;
+            res.approvedOnlyActual = true;
           }
         } catch (e) {}
       }

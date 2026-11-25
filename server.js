@@ -80,11 +80,11 @@ async function fetchGasGet(action, params = {}, { forceFresh = false } = {}) {
   }
 }
 
-const REJECTED_STATUSES = new Set(['rejected', 'ไม่อนุมัติ']);
+const APPROVED_STATUSES = new Set(['reviewed', 'approved', 'อนุมัติแล้ว']);
 
-function isRejectedApp(item) {
+function isApprovedApp(item) {
   const s = String((item && (item.reviewStatus || item.status)) || '').toLowerCase().trim();
-  return REJECTED_STATUSES.has(s);
+  return APPROVED_STATUSES.has(s);
 }
 
 function hasAssignedSection(item) {
@@ -92,16 +92,16 @@ function hasAssignedSection(item) {
   return Boolean(sec && sec !== '-');
 }
 
-async function computeRejectedDeductionsByAffiliation(forceFresh = false) {
+async function computeNonApprovedDeductionsByAffiliation(forceFresh = false) {
   const apps = await fetchGasGet('getapplications', { username: '', role: 'admin' }, { forceFresh });
   const list = Array.isArray(apps) ? apps : [];
-  const rejectedItems = list.filter((item) => isRejectedApp(item) && hasAssignedSection(item));
+  const nonApprovedItems = list.filter((item) => !isApprovedApp(item) && hasAssignedSection(item));
   const countsByAff = {};
-  if (!rejectedItems.length) return countsByAff;
+  if (!nonApprovedItems.length) return countsByAff;
 
   const uniqueReviewers = Array.from(
     new Set(
-      rejectedItems
+      nonApprovedItems
         .map((item) => String(item.reviewerUsername || '').trim())
         .filter((u) => u && u !== '-')
     )
@@ -119,7 +119,7 @@ async function computeRejectedDeductionsByAffiliation(forceFresh = false) {
     })
   );
 
-  for (const item of rejectedItems) {
+  for (const item of nonApprovedItems) {
     const revKey = String(item.reviewerUsername || '').trim().toLowerCase();
     const aff = (item.affiliation && String(item.affiliation).trim()) || reviewerAffMap[revKey] || '';
     if (aff) {
@@ -131,7 +131,7 @@ async function computeRejectedDeductionsByAffiliation(forceFresh = false) {
 
 async function adjustQuotaResponse(action, data, forceFresh = false) {
   if (action === 'getallquota' && data && data.success && Array.isArray(data.data)) {
-    const countsByAff = await computeRejectedDeductionsByAffiliation(forceFresh);
+    const countsByAff = await computeNonApprovedDeductionsByAffiliation(forceFresh);
     const adjustedRows = data.data.map((row) => {
       const affKey = String(row.affiliation || '').trim();
       const deduct = countsByAff[affKey] || 0;
@@ -154,11 +154,12 @@ async function adjustQuotaResponse(action, data, forceFresh = false) {
         remaining: totalApproved - totalActual,
       },
       rejectedExcluded: true,
+      approvedOnlyActual: true,
     };
   }
 
   if (action === 'getuserquota' && data && data.affiliation) {
-    const countsByAff = await computeRejectedDeductionsByAffiliation(forceFresh);
+    const countsByAff = await computeNonApprovedDeductionsByAffiliation(forceFresh);
     const affKey = String(data.affiliation || '').trim();
     const deduct = countsByAff[affKey] || 0;
     const approved = Number(data.approved) || 0;
@@ -168,6 +169,7 @@ async function adjustQuotaResponse(action, data, forceFresh = false) {
       actual,
       remaining: approved - actual,
       rejectedExcluded: true,
+      approvedOnlyActual: true,
     };
   }
 
