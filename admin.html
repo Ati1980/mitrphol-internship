@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - ระบบบริหารจัดการนักศึกษาฝึกงาน</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
   <link rel="preload" as="image" href="/assets/aistudio/blue-office-stationery-set-with-laptop_e219bbe5.jpg">
   <script src="api-config.js"></script>
   <script>
@@ -31,6 +33,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
   
   <style>
     .hidden { display: none !important; }
@@ -72,6 +75,35 @@
     }
     .glass-logout-btn:active {
       transform: scale(0.97);
+    }
+    .glass-reset-x-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #e11d48;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 241, 242, 0.9) 100%);
+      border: 1.5px solid rgba(254, 205, 211, 0.95);
+      box-shadow: 0 6px 14px -8px rgba(225, 29, 72, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+    }
+    .glass-reset-x-btn svg {
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-reset-x-btn:hover {
+      transform: translateY(-1.5px) scale(1.06);
+      color: #ffffff;
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      border-color: rgba(225, 29, 72, 0.85);
+      box-shadow: 0 10px 20px -8px rgba(225, 29, 72, 0.55), 0 0 0 3px rgba(254, 205, 211, 0.45);
+    }
+    .glass-reset-x-btn:hover svg {
+      transform: rotate(90deg);
+    }
+    .glass-reset-x-btn:active {
+      transform: scale(0.93);
     }
 
     .stat-glass-card {
@@ -461,9 +493,14 @@
           <h2 class="text-xl font-black" style="color: #1e1b4b;" id="tableTitle">รายการผู้สมัครทั้งหมด</h2>
           <p class="text-xs mt-1" style="color: #64748b;">จัดการสิทธิ์การอนุมัติ แก้ไขผู้พิจารณา และยกเลิกสถานะการอนุมัติ (คลิกที่รายการเพื่อดูรายละเอียด)</p>
         </div>
-        <button onclick="loadAdminData(true)" class="px-4 py-2.5 rounded-2xl font-bold transition flex items-center gap-2 text-sm shadow-sm" style="background-color: #e0e7ff; color: #3730a3;">
-          <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
-        </button>
+        <div class="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
+          <button id="btnExportExcel" onclick="exportAdminTableToExcel()" class="px-4 py-2.5 rounded-2xl font-bold transition flex items-center gap-2 text-sm shadow-sm hover:shadow-md active:scale-95" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); color: #047857; border: 1px solid #a7f3d0;">
+            <i class="fa-solid fa-file-excel"></i> Export Excel
+          </button>
+          <button onclick="loadAdminData(true)" class="px-4 py-2.5 rounded-2xl font-bold transition flex items-center gap-2 text-sm shadow-sm hover:shadow-md active:scale-95" style="background-color: #e0e7ff; color: #3730a3;">
+            <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
+          </button>
+        </div>
       </div>
 
       <!-- Filters -->
@@ -759,6 +796,7 @@
 <script>
   let currentAdmin = { username: 'Admin', role: 'admin', fullName: 'ผู้ดูแลระบบ (Admin)' };
   let adminDataList = [];
+  let filteredAdminList = [];
   let currentPage = 1;
   const PAGE_SIZE = 20;
   let emailSentRows = {};
@@ -959,6 +997,8 @@
       return matchSearch && matchLocation && matchUnit && matchSection && matchApprover && matchApproval;
     });
 
+    filteredAdminList = filtered;
+
     const totalItems = filtered.length;
     const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
     if (currentPage > totalPages) currentPage = totalPages;
@@ -1012,8 +1052,11 @@
       let actionBtn = '';
       if (!isUnassigned) {
         actionBtn = `
-          <button onclick="handleAdminResetClaim(${item.sheetRow})" title="ยกเลิกการอนุมัติ" aria-label="ยกเลิกการอนุมัติ" class="w-9 h-9 rounded-xl inline-flex items-center justify-center text-xs shadow-sm transition hover:scale-105 active:scale-95" style="background-color: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;">
-            <i class="fa-solid fa-rotate-left"></i>
+          <button onclick="handleAdminResetClaim(${item.sheetRow})" title="ยกเลิกการอนุมัติ" aria-label="ยกเลิกการอนุมัติ" class="glass-reset-x-btn">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>`;
       } else {
         actionBtn = `<span class="text-xs text-gray-400">-</span>`;
@@ -1057,6 +1100,117 @@
   function changePage(dir) {
     currentPage += dir;
     filterAdminTable();
+  }
+
+  function exportAdminTableToExcel() {
+    const list = (filteredAdminList && filteredAdminList.length) ? filteredAdminList : [];
+    if (!list.length) {
+      alert('ไม่มีข้อมูลสำหรับ Export ตามตัวกรองปัจจุบัน');
+      return;
+    }
+
+    const getThaiStatusLabel = (raw) => {
+      const s = String(raw || '').toLowerCase().trim();
+      if (s === 'reviewed' || s === 'approved' || s === 'อนุมัติแล้ว') return 'อนุมัติแล้ว';
+      if (s === 'rejected' || s === 'ไม่อนุมัติ') return 'ไม่อนุมัติ';
+      if (s === 'pending' || s === 'รอการพิจารณา') return 'รอการพิจารณา';
+      return 'ยังไม่มีผู้รับเรื่อง';
+    };
+
+    const rows = list.map((item, idx) => {
+      const isSent = Boolean(emailSentRows[item.sheetRow] || (item.emailSentStatus && item.emailSentStatus.includes('ส่งแล้ว')));
+      const phoneStr = formatThaiPhone(item.phone);
+      const emerPhoneStr = formatThaiPhone(item.emergencyPhone);
+      return {
+        'ลำดับ': idx + 1,
+        'ชื่อ-สกุล': item.fullName || '-',
+        'ชื่อเล่น': item.nickName || '-',
+        'เบอร์โทรศัพท์': phoneStr,
+        'สถานที่': item.location || '-',
+        'ระดับการศึกษา': item.degree || '-',
+        'สถาบันการศึกษา': item.institution || '-',
+        'สาขาวิชา': item.major || '-',
+        'หน่วยงานที่ขอ': item.workUnit || '-',
+        'แผนก': (item.selectedSection && item.selectedSection !== '-') ? item.selectedSection : '-',
+        'สถานะ': getThaiStatusLabel(item.reviewStatus || item.status),
+        'ผู้อนุมัติ (ผู้พิจารณา)': item.approverDisplayName || item.reviewerUsername || '-',
+        'สถานะส่งอีเมล': isSent ? 'ส่งแล้ว' : (item.emailSentStatus || '-'),
+        'วันเริ่มฝึกงาน': item.startDate || '-',
+        'วันสิ้นสุดฝึกงาน': item.endDate || '-',
+        'อีเมลนักศึกษา': item.emailStudent || '-',
+        'อีเมลสถาบัน': item.emailInst || '-',
+        'Line ID': item.lineId || '-',
+        'ผู้ติดต่อฉุกเฉิน': item.emergencyName || '-',
+        'เบอร์โทรฉุกเฉิน': emerPhoneStr
+      };
+    });
+
+    const today = new Date();
+    const dateTag = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0')
+    ].join('-');
+
+    if (typeof XLSX !== 'undefined') {
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      // Preserve leading zeroes in phone columns (D = col 3, T = col 19)
+      for (let R = range.s.r + 1; R <= range.e.r; R++) {
+        [3, 19].forEach((C) => {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          if (ws[addr] && ws[addr].v !== undefined) {
+            ws[addr].t = 's';
+            ws[addr].v = String(ws[addr].v);
+            ws[addr].z = '@';
+          }
+        });
+      }
+      ws['!cols'] = [
+        { wch: 7 },  // ลำดับ
+        { wch: 24 }, // ชื่อ-สกุล
+        { wch: 12 }, // ชื่อเล่น
+        { wch: 15 }, // เบอร์โทรศัพท์
+        { wch: 24 }, // สถานที่
+        { wch: 16 }, // ระดับการศึกษา
+        { wch: 28 }, // สถาบันการศึกษา
+        { wch: 24 }, // สาขาวิชา
+        { wch: 16 }, // หน่วยงานที่ขอ
+        { wch: 20 }, // แผนก
+        { wch: 16 }, // สถานะ
+        { wch: 22 }, // ผู้อนุมัติ
+        { wch: 16 }, // สถานะส่งอีเมล
+        { wch: 14 }, // วันเริ่ม
+        { wch: 14 }, // วันสิ้นสุด
+        { wch: 26 }, // อีเมลนักศึกษา
+        { wch: 26 }, // อีเมลสถาบัน
+        { wch: 16 }, // Line ID
+        { wch: 22 }, // ผู้ติดต่อฉุกเฉิน
+        { wch: 15 }  // เบอร์โทรฉุกเฉิน
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'รายชื่อนักศึกษาฝึกงาน');
+      XLSX.writeFile(wb, `รายชื่อนักศึกษาฝึกงาน_${dateTag}.xlsx`);
+      return;
+    }
+
+    // Fallback UTF-8 BOM CSV if SheetJS CDN fails to load
+    const headers = Object.keys(rows[0]);
+    const csvEscape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csvLines = [
+      headers.map(csvEscape).join(','),
+      ...rows.map((r) => headers.map((h) => csvEscape(r[h])).join(','))
+    ];
+    const blob = new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `รายชื่อนักศึกษาฝึกงาน_${dateTag}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   async function handleAdminResetClaim(sheetRow) {
