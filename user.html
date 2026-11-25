@@ -33,6 +33,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
   
   <style>
     .hidden { display: none !important; }
@@ -128,6 +129,164 @@
     .modern-table-row:hover {
       background-color: rgba(239, 246, 255, 0.72);
     }
+    .user-photo-col {
+      width: 58px;
+      min-width: 58px;
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+    .user-avatar-thumb {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      min-height: 38px;
+    }
+    @media (min-width: 640px) {
+      .user-photo-col {
+        width: 68px;
+        min-width: 68px;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+      }
+      .user-avatar-thumb {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+      }
+    }
+
+    /* Quota Overview Button & Modal */
+    .quota-overview-btn {
+      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      box-shadow: 0 10px 24px -8px rgba(79, 70, 229, 0.48);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, filter 0.2s ease;
+    }
+    .quota-overview-btn:hover {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 14px 28px -8px rgba(6, 182, 212, 0.5);
+    }
+    .quota-overview-btn:active {
+      transform: scale(0.98);
+    }
+
+    @keyframes quotaAurora {
+      0%, 100% { transform: translate3d(-10%, -8%, 0) scale(1); }
+      50% { transform: translate3d(12%, 10%, 0) scale(1.1); }
+    }
+    @keyframes quotaReveal {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes quotaRowFade {
+      0% { opacity: 0; transform: translateX(8px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
+    #quotaModal {
+      background: rgba(15, 23, 42, 0.58);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease;
+    }
+    #quotaModal.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .quota-shell {
+      background: linear-gradient(155deg, rgba(255, 255, 255, 0.97) 0%, rgba(241, 247, 255, 0.96) 55%, rgba(232, 243, 255, 0.97) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 28px;
+      max-height: 94vh;
+      box-shadow: 0 30px 75px -18px rgba(15, 23, 42, 0.42), 0 0 0 1px rgba(191, 219, 254, 0.55);
+      transform: translateY(22px) scale(0.95);
+      opacity: 0;
+      transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    #quotaModal.is-open .quota-shell {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    #quotaModal.is-open .quota-stagger-1 {
+      animation: quotaReveal 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+    }
+    #quotaModal.is-open .quota-stagger-2 {
+      animation: quotaReveal 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.13s both;
+    }
+    #quotaModal.is-open .quota-stagger-3 {
+      animation: quotaReveal 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.19s both;
+    }
+    .quota-aurora-orb {
+      animation: quotaAurora 9s ease-in-out infinite;
+      will-change: transform;
+    }
+    .quota-header-banner {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 52%, #0891b2 100%);
+      border-radius: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .quota-close-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+    }
+    .quota-close-btn:hover {
+      background: rgba(255, 255, 255, 0.26);
+      transform: rotate(90deg);
+    }
+    .quota-kpi-card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 18px;
+      padding: 12px 16px;
+      box-shadow: 0 8px 22px -12px rgba(15, 23, 42, 0.15);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+    .quota-kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px -12px rgba(37, 99, 235, 0.22);
+    }
+    .quota-panel {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(219, 234, 254, 0.95);
+      border-radius: 22px;
+      box-shadow: 0 14px 36px -18px rgba(30, 58, 138, 0.18);
+      backdrop-filter: blur(12px);
+    }
+    .quota-chart-wrap {
+      min-height: 260px;
+      height: 290px;
+    }
+    .quota-table-panel {
+      height: 360px;
+    }
+    @media (min-width: 1024px) {
+      .quota-table-panel {
+        height: 480px;
+      }
+    }
+    .quota-row-animate {
+      animation: quotaRowFade 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    @media (prefers-reduced-motion: reduce) {
+      .quota-aurora-orb, .quota-stagger-1, .quota-stagger-2, .quota-stagger-3, .quota-row-animate {
+        animation: none !important;
+      }
+      .quota-shell, #quotaModal {
+        transition: none !important;
+      }
+    }
   </style>
 </head>
 <body class="text-gray-800 pb-16">
@@ -166,21 +325,28 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5 sm:gap-3.5 bg-white/80 p-2 sm:p-2.5 rounded-2xl border border-gray-100 shadow-sm self-stretch md:self-auto justify-between sm:justify-end">
-        <div id="boxApproved" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 min-w-[80px]">
-          <span class="block text-xs font-bold text-blue-700">อนุมัติ</span>
-          <span class="text-2xl font-black text-blue-600" id="quotaApproved">0</span>
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 self-stretch md:self-auto justify-end">
+        <div class="flex items-center gap-2.5 sm:gap-3.5 bg-white/80 p-2 sm:p-2.5 rounded-2xl border border-gray-100 shadow-sm justify-between sm:justify-end">
+          <div id="boxApproved" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 min-w-[80px]">
+            <span class="block text-xs font-bold text-blue-700">อนุมัติ</span>
+            <span class="text-2xl font-black text-blue-600" id="quotaApproved">0</span>
+          </div>
+
+          <div id="boxActual" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 min-w-[80px]">
+            <span class="block text-xs font-bold text-amber-800" id="labelActual">เกิดจริง</span>
+            <span class="text-2xl font-black text-amber-600" id="quotaActual">0</span>
+          </div>
+
+          <div id="boxRemaining" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 min-w-[80px]">
+            <span class="block text-xs font-bold text-emerald-800" id="labelRemaining">คงเหลือ</span>
+            <span class="text-2xl font-black text-emerald-600" id="quotaRemaining">0</span>
+          </div>
         </div>
 
-        <div id="boxActual" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 min-w-[80px]">
-          <span class="block text-xs font-bold text-amber-800" id="labelActual">เกิดจริง</span>
-          <span class="text-2xl font-black text-amber-600" id="quotaActual">0</span>
-        </div>
-
-        <div id="boxRemaining" class="flex-1 sm:flex-initial text-center px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 min-w-[80px]">
-          <span class="block text-xs font-bold text-emerald-800" id="labelRemaining">คงเหลือ</span>
-          <span class="text-2xl font-black text-emerald-600" id="quotaRemaining">0</span>
-        </div>
+        <button type="button" onclick="openQuotaModal()" class="quota-overview-btn px-4 py-3 rounded-2xl font-bold text-white flex items-center justify-center gap-2.5 whitespace-nowrap">
+          <i class="fa-solid fa-chart-pie text-lg animate-pulse"></i>
+          <span>ภาพรวมโควต้าทุกสังกัด</span>
+        </button>
       </div>
     </section>
 
@@ -282,7 +448,7 @@
         <table class="w-full text-left text-sm">
           <thead class="text-xs font-bold border-b" style="background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); color: #475569; border-color: #e2e8f0;">
             <tr>
-              <th class="py-3.5 px-3 text-center whitespace-nowrap">รูป</th>
+              <th class="user-photo-col py-3 sm:py-3.5 text-center whitespace-nowrap">รูป</th>
               <th class="py-3.5 px-3 whitespace-nowrap">ผู้สมัคร</th>
               <th class="py-3.5 px-3 whitespace-nowrap">สถานที่</th>
               <th class="py-3.5 px-3 whitespace-nowrap">สถาบัน/สาขา</th>
@@ -350,6 +516,134 @@
       <div class="flex items-center justify-center gap-3 pt-2">
         <button onclick="closeConfirmModal()" class="w-1/2 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition">ยกเลิก</button>
         <button id="btnConfirmClaimAction" onclick="executeClaimAction()" class="w-1/2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition">ยืนยันรับเรื่อง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quota Overview Modal (Read-only) -->
+  <div id="quotaModal" onclick="if (event.target === this) closeQuotaModal();" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
+    <div class="quota-shell max-w-7xl w-full p-4 sm:p-6 space-y-4 flex flex-col overflow-hidden">
+
+      <!-- Modern Atmospheric Header -->
+      <div class="quota-header-banner px-5 py-4 sm:px-6 sm:py-5 text-white flex-shrink-0">
+        <div class="quota-aurora-orb absolute -top-14 -right-10 w-56 h-56 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(56, 189, 248, 0.38), transparent 70%);"></div>
+        <div class="quota-aurora-orb absolute -bottom-16 -left-10 w-52 h-52 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(129, 140, 248, 0.34), transparent 70%); animation-delay: -4s;"></div>
+
+        <div class="relative z-10 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg" style="background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.28); backdrop-filter: blur(10px);">
+              <i class="fa-solid fa-chart-pie text-xl text-white"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-lg sm:text-xl font-extrabold tracking-tight leading-snug truncate">ภาพรวมโควตานักศึกษาฝึกงาน (ทุกสังกัด)</h3>
+              <p class="text-xs sm:text-sm truncate" style="color: rgba(224, 242, 254, 0.88);">เปรียบเทียบสัดส่วนโควต้าอนุมัติ เกิดจริง และคงเหลือแบบเรียลไทม์</p>
+            </div>
+          </div>
+
+          <button type="button" onclick="closeQuotaModal()" aria-label="ปิดหน้าต่าง" class="quota-close-btn flex-shrink-0">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3-Column Balanced KPI Strip -->
+      <div class="quota-stagger-1 grid grid-cols-3 gap-2.5 sm:gap-4 flex-shrink-0">
+        <div class="quota-kpi-card flex items-center justify-between gap-2" style="border-color: #bfdbfe; background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);">
+          <div class="min-w-0">
+            <span class="text-xs font-bold block truncate" style="color: #1e40af;">อนุมัติรวม</span>
+            <span class="text-xl sm:text-3xl font-black tabular-nums leading-tight" style="color: #2563eb;" id="sumQuotaApproved">0</span>
+          </div>
+          <div class="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0" style="background: #dbeafe; color: #2563eb;">
+            <i class="fa-solid fa-clipboard-check text-base"></i>
+          </div>
+        </div>
+
+        <div id="cardSumActual" class="quota-kpi-card flex items-center justify-between gap-2" style="border-color: #fde68a; background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);">
+          <div class="min-w-0">
+            <span class="text-xs font-bold block truncate" style="color: #92400e;" id="labelSumActual">เกิดจริงรวม</span>
+            <span class="text-xl sm:text-3xl font-black tabular-nums leading-tight" style="color: #d97706;" id="sumQuotaActual">0</span>
+          </div>
+          <div id="iconSumActual" class="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0" style="background: #fef3c7; color: #d97706;">
+            <i class="fa-solid fa-user-check text-base"></i>
+          </div>
+        </div>
+
+        <div id="cardSumRemaining" class="quota-kpi-card flex items-center justify-between gap-2" style="border-color: #fecdd3; background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);">
+          <div class="min-w-0">
+            <span class="text-xs font-bold block truncate" style="color: #9f1239;" id="labelSumRemaining">คงเหลือรวม</span>
+            <span class="text-xl sm:text-3xl font-black tabular-nums leading-tight" style="color: #e11d48;" id="sumQuotaRemaining">0</span>
+          </div>
+          <div id="iconSumRemaining" class="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0" style="background: #ffe4e6; color: #e11d48;">
+            <i class="fa-solid fa-scale-balanced text-base"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Split Workspace: Chart + Affiliation Breakdown Table -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 flex-1 min-h-0 overflow-y-auto lg:overflow-visible pr-0.5">
+
+        <!-- Stacked Chart Card -->
+        <div class="quota-stagger-2 quota-panel lg:col-span-7 flex flex-col p-4 sm:p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3" style="border-bottom: 1px solid rgba(226, 232, 240, 0.85);">
+            <h4 class="text-xs sm:text-sm font-bold flex items-center gap-2" style="color: #1e293b;">
+              <span class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: #e0e7ff; color: #4338ca;">
+                <i class="fa-solid fa-chart-bar text-xs"></i>
+              </span>
+              <span>แผนภูมิสัดส่วนการใช้โควต้า (Stacked Progress)</span>
+            </h4>
+            <div class="flex items-center flex-wrap gap-3 text-xs font-bold" style="color: #475569;">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,0.2);"></span>เกิดจริง
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.2);"></span>คงเหลือ
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: #f43f5e; box-shadow: 0 0 0 2px rgba(244,63,94,0.2);"></span>ส่วนต่าง / เกิน
+              </span>
+            </div>
+          </div>
+          <div class="quota-chart-wrap relative w-full my-auto">
+            <canvas id="quotaChartCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Read-only Quota Breakdown Table Card -->
+        <div class="quota-stagger-3 quota-panel quota-table-panel lg:col-span-5 flex flex-col overflow-hidden">
+          <div class="px-4 py-3.5 flex justify-between items-center flex-shrink-0" style="background: linear-gradient(90deg, rgba(239,246,255,0.95), rgba(238,242,255,0.95)); border-bottom: 1px solid rgba(219, 234, 254, 0.95);">
+            <div class="flex items-center gap-2 font-bold text-xs sm:text-sm" style="color: #1e293b;">
+              <span class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: #dbeafe; color: #2563eb;">
+                <i class="fa-solid fa-building text-xs"></i>
+              </span>
+              <span>สรุปโควต้ารายสังกัด</span>
+            </div>
+            <button type="button" onclick="loadQuotaOverviewData(true)" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5" style="background: #ffffff; color: #2563eb; border: 1px solid #bfdbfe;">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>รีเฟรช</span>
+            </button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="font-bold sticky top-0 z-10" style="background: rgba(248, 250, 252, 0.96); color: #475569; border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px);">
+                <tr>
+                  <th class="py-2.5 px-3.5">สังกัด</th>
+                  <th class="py-2.5 px-2 text-center">อนุมัติ</th>
+                  <th class="py-2.5 px-2 text-center">เกิดจริง</th>
+                  <th class="py-2.5 px-3 text-center">คงเหลือ</th>
+                </tr>
+              </thead>
+              <tbody id="quotaTableBody" class="divide-y divide-gray-100">
+                <tr>
+                  <td colspan="4" class="p-10 text-center" style="color: #94a3b8;">
+                    <i class="fa-solid fa-spinner fa-spin text-xl mb-2" style="color: #4f46e5;"></i>
+                    <p>กำลังโหลดข้อมูลโควต้า...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -733,14 +1027,14 @@
       }
 
       const profileImg = item.profileImageLink 
-        ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover border-2 mx-auto shadow-sm" style="border-color: #e0f2fe;" onerror="this.onerror=null; this.src='https://via.placeholder.com/40';">`
-        : `<div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto"><i class="fa-solid fa-user"></i></div>`;
+        ? `<img src="${item.profileImageLink}" referrerpolicy="no-referrer" class="user-avatar-thumb rounded-full object-cover border-2 mx-auto shadow-sm flex-shrink-0" style="border-color: #e0f2fe;" onerror="this.onerror=null; this.src='https://via.placeholder.com/40';">`
+        : `<div class="user-avatar-thumb rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto flex-shrink-0"><i class="fa-solid fa-user text-sm"></i></div>`;
 
       const approverDisplayName = item.approverDisplayName || item.reviewerUsername || '-';
 
       return `
         <tr onclick="openDetailModal(${item.sheetRow})" class="modern-table-row cursor-pointer">
-          <td class="py-3.5 px-3 text-center align-middle">${profileImg}</td>
+          <td class="user-photo-col py-3 sm:py-3.5 text-center align-middle">${profileImg}</td>
           <td class="py-3.5 px-3 align-middle" style="min-width: 170px;">
             <div class="font-bold text-gray-800 hover:text-blue-600 transition leading-snug">${item.fullName} ${item.nickName ? `(${item.nickName})` : ''}</div>
             <div class="text-xs mt-0.5" style="color: #64748b;"><i class="fa-solid fa-phone mr-1 text-[10px]"></i>${formatThaiPhone(item.phone)}</div>
@@ -911,6 +1205,345 @@
     sessionStorage.removeItem('mitrpholActiveView');
     localStorage.removeItem('mitrpholActiveView');
     window.location.replace('index.html?student=1');
+  }
+
+  // ==========================================
+  // Quota Overview Modal (Read-only for User)
+  // ==========================================
+  let quotaChartInstance = null;
+
+  function openQuotaModal() {
+    const modal = document.getElementById('quotaModal');
+    if (modal) modal.classList.add('is-open');
+    loadQuotaOverviewData(false);
+  }
+
+  function closeQuotaModal() {
+    const modal = document.getElementById('quotaModal');
+    if (modal) modal.classList.remove('is-open');
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('quotaModal');
+      if (modal && modal.classList.contains('is-open')) {
+        closeQuotaModal();
+      }
+    }
+  });
+
+  async function loadQuotaOverviewData(forceFresh = false) {
+    const tbody = document.getElementById('quotaTableBody');
+    const cacheKey = 'mitrpholAllQuotaCache';
+    let hasCached = false;
+
+    if (!forceFresh) {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (cached && cached.success && cached.rejectedExcluded) {
+          hasCached = true;
+          renderQuotaOverview(cached);
+        }
+      } catch (e) {}
+    }
+
+    if (!hasCached && tbody) {
+      tbody.innerHTML = `
+        <tr><td colspan="4" class="p-10 text-center" style="color: #94a3b8;">
+          <i class="fa-solid fa-spinner fa-spin text-xl mb-2" style="color: #4f46e5;"></i>
+          <p>กำลังโหลดข้อมูลโควต้า...</p>
+        </td></tr>`;
+    }
+
+    try {
+      let res = await callGasGet('getallquota', {}, { fresh: forceFresh });
+      if (res && res.success && !res.rejectedExcluded && Array.isArray(res.data)) {
+        try {
+          const apps = userDataList.length ? userDataList : await callGasGet('getapplications', { username: '', role: 'admin' });
+          const rejectedWithSection = (Array.isArray(apps) ? apps : []).filter(item => {
+            const st = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+            const sec = String(item.selectedSection || '').trim();
+            return (st === 'rejected' || st === 'ไม่อนุมัติ') && sec && sec !== '-';
+          });
+          if (rejectedWithSection.length) {
+            const reviewers = Array.from(new Set(rejectedWithSection.map(x => String(x.reviewerUsername || '').trim()).filter(u => u && u !== '-')));
+            const revAffMap = {};
+            await Promise.all(reviewers.map(async (u) => {
+              try {
+                const uq = await callGasGet('getuserquota', { username: u });
+                if (uq && uq.affiliation) revAffMap[u.toLowerCase()] = String(uq.affiliation).trim();
+              } catch (e) {}
+            }));
+            const deductMap = {};
+            rejectedWithSection.forEach(item => {
+              const aff = (item.affiliation && String(item.affiliation).trim()) || revAffMap[String(item.reviewerUsername || '').trim().toLowerCase()] || '';
+              if (aff) deductMap[aff] = (deductMap[aff] || 0) + 1;
+            });
+            res.data = res.data.map(row => {
+              const d = deductMap[String(row.affiliation || '').trim()] || 0;
+              const actual = Math.max(0, (Number(row.actual) || 0) - d);
+              const approved = Number(row.approved) || 0;
+              return { ...row, actual, remaining: approved - actual };
+            });
+            const totApp = res.data.reduce((s, r) => s + (Number(r.approved) || 0), 0);
+            const totAct = res.data.reduce((s, r) => s + (Number(r.actual) || 0), 0);
+            res.totals = { approved: totApp, actual: totAct, remaining: totApp - totAct };
+            res.rejectedExcluded = true;
+          }
+        } catch (e) {}
+      }
+      if (res && res.success) {
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(res)); } catch (e) {}
+      }
+      renderQuotaOverview(res);
+    } catch (err) {
+      if (!hasCached && tbody) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">ไม่สามารถดึงข้อมูลได้: ${err.message || err}</td></tr>`;
+      }
+    }
+  }
+
+  function renderQuotaOverview(res) {
+    if (!res || !res.success) {
+      alert("ไม่สามารถดึงข้อมูลโควต้าได้: " + (res ? res.message : ""));
+      return;
+    }
+
+    const list = res.data || [];
+    updateQuotaSummaryHeaders(res.totals.approved, res.totals.actual, res.totals.remaining);
+
+    const tbody = document.getElementById('quotaTableBody');
+    if (tbody) {
+      tbody.innerHTML = list.map((item, index) => {
+        const app = Number(item.approved) || 0;
+        const act = Number(item.actual) || 0;
+        const rem = Number(item.remaining) || 0;
+        const remColor = rem < 0 ? '#e11d48' : (rem > 0 ? '#059669' : '#94a3b8');
+        const remBg = rem < 0 ? '#fff1f2' : (rem > 0 ? '#ecfdf5' : '#f1f5f9');
+        const delayMs = Math.min(index * 35, 320);
+        return `
+          <tr class="quota-row-animate hover:bg-blue-50 transition-colors" style="animation-delay: ${delayMs}ms;">
+            <td class="py-2.5 px-3.5 font-bold leading-snug" style="color: #1e293b;">${item.affiliation}</td>
+            <td class="py-2.5 px-2 text-center">
+              <span class="inline-block min-w-[32px] px-2.5 py-0.5 rounded-lg text-xs font-extrabold tabular-nums" style="color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe;">
+                ${app}
+              </span>
+            </td>
+            <td class="py-2.5 px-2 text-center font-bold tabular-nums" style="color: #d97706;">${act}</td>
+            <td class="py-2.5 px-3 text-center">
+              <span class="inline-block min-w-[34px] px-2 py-0.5 rounded-lg text-xs font-extrabold tabular-nums" style="color: ${remColor}; background: ${remBg};">
+                ${rem < 0 ? rem : (rem > 0 ? '+' + rem : '0')}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    renderModernQuotaChart(list);
+  }
+
+  function updateQuotaSummaryHeaders(approved, actual, remaining) {
+    const appEl = document.getElementById('sumQuotaApproved');
+    if (appEl) appEl.innerText = approved;
+
+    const actVal = Number(actual) || 0;
+    const actSumEl = document.getElementById('sumQuotaActual');
+    const cardActSum = document.getElementById('cardSumActual');
+    const lblActSum = document.getElementById('labelSumActual');
+    const iconActSum = document.getElementById('iconSumActual');
+
+    if (actSumEl) {
+      actSumEl.innerText = actVal;
+      if (actVal > 0) {
+        actSumEl.style.color = "#d97706";
+        if (lblActSum) lblActSum.style.color = "#92400e";
+        if (cardActSum) {
+          cardActSum.style.background = "linear-gradient(135deg, #ffffff 0%, #fffbeb 100%)";
+          cardActSum.style.borderColor = "#fde68a";
+        }
+        if (iconActSum) {
+          iconActSum.style.background = "#fef3c7";
+          iconActSum.style.color = "#d97706";
+        }
+      } else {
+        actSumEl.style.color = "#64748b";
+        if (lblActSum) lblActSum.style.color = "#64748b";
+        if (cardActSum) {
+          cardActSum.style.background = "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+          cardActSum.style.borderColor = "#e2e8f0";
+        }
+        if (iconActSum) {
+          iconActSum.style.background = "#f1f5f9";
+          iconActSum.style.color = "#64748b";
+        }
+      }
+    }
+
+    const remVal = Number(remaining) || 0;
+    const sumRemEl = document.getElementById('sumQuotaRemaining');
+    const cardRemSum = document.getElementById('cardSumRemaining');
+    const lblRemSum = document.getElementById('labelSumRemaining');
+    const iconRemSum = document.getElementById('iconSumRemaining');
+
+    if (sumRemEl) {
+      sumRemEl.innerText = remVal > 0 ? '+' + remVal : remVal;
+      if (remVal < 0) {
+        sumRemEl.style.color = "#e11d48";
+        if (lblRemSum) lblRemSum.style.color = "#9f1239";
+        if (cardRemSum) {
+          cardRemSum.style.background = "linear-gradient(135deg, #ffffff 0%, #fff1f2 100%)";
+          cardRemSum.style.borderColor = "#fecdd3";
+        }
+        if (iconRemSum) {
+          iconRemSum.style.background = "#ffe4e6";
+          iconRemSum.style.color = "#e11d48";
+        }
+      } else if (remVal > 0) {
+        sumRemEl.style.color = "#059669";
+        if (lblRemSum) lblRemSum.style.color = "#065f46";
+        if (cardRemSum) {
+          cardRemSum.style.background = "linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%)";
+          cardRemSum.style.borderColor = "#a7f3d0";
+        }
+        if (iconRemSum) {
+          iconRemSum.style.background = "#d1fae5";
+          iconRemSum.style.color = "#059669";
+        }
+      } else {
+        sumRemEl.style.color = "#475569";
+        if (lblRemSum) lblRemSum.style.color = "#64748b";
+        if (cardRemSum) {
+          cardRemSum.style.background = "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+          cardRemSum.style.borderColor = "#e2e8f0";
+        }
+        if (iconRemSum) {
+          iconRemSum.style.background = "#f1f5f9";
+          iconRemSum.style.color = "#64748b";
+        }
+      }
+    }
+  }
+
+  function renderModernQuotaChart(list, animateChart = true) {
+    const canvas = document.getElementById('quotaChartCanvas');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
+    if (quotaChartInstance) {
+      quotaChartInstance.destroy();
+    }
+
+    const labels = list.map(x => x.affiliation);
+    const actualData = list.map(x => x.actual);
+    const availableData = list.map(x => Math.max(0, x.remaining));
+    const overData = list.map(x => x.remaining < 0 ? Math.abs(x.remaining) : 0);
+
+    if (canvas.parentElement) {
+      const targetHeight = Math.max(250, labels.length * 28 + 38);
+      canvas.parentElement.style.minHeight = targetHeight + 'px';
+      canvas.parentElement.style.height = targetHeight + 'px';
+    }
+
+    const gradActual = ctx.createLinearGradient(0, 0, 340, 0);
+    gradActual.addColorStop(0, '#f59e0b');
+    gradActual.addColorStop(1, '#fcd34d');
+
+    const gradAvailable = ctx.createLinearGradient(0, 0, 340, 0);
+    gradAvailable.addColorStop(0, '#059669');
+    gradAvailable.addColorStop(1, '#2dd4bf');
+
+    const gradOver = ctx.createLinearGradient(0, 0, 340, 0);
+    gradOver.addColorStop(0, '#e11d48');
+    gradOver.addColorStop(1, '#fb7185');
+
+    const quotaModernTrackPlugin = {
+      id: 'quotaModernTrack',
+      beforeDatasetsDraw(chart) {
+        const { ctx: chartCtx, data, scales } = chart;
+        if (!scales || !scales.x || !scales.y) return;
+
+        const trackLeft = scales.x.left;
+        const trackRight = scales.x.right;
+        const trackWidth = Math.max(0, trackRight - trackLeft);
+        const trackHeight = 16;
+        const radius = trackHeight / 2;
+
+        chartCtx.save();
+        chartCtx.fillStyle = 'rgba(226, 232, 240, 0.48)';
+
+        for (let i = 0; i < data.labels.length; i++) {
+          const yCenter = scales.y.getPixelForValue(i);
+          const top = yCenter - trackHeight / 2;
+          chartCtx.beginPath();
+          if (typeof chartCtx.roundRect === 'function') {
+            chartCtx.roundRect(trackLeft, top, trackWidth, trackHeight, radius);
+          } else {
+            chartCtx.rect(trackLeft, top, trackWidth, trackHeight);
+          }
+          chartCtx.fill();
+        }
+        chartCtx.restore();
+      }
+    };
+
+    quotaChartInstance = new Chart(ctx, {
+      type: 'bar',
+      plugins: [quotaModernTrackPlugin],
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'เกิดจริง (รับแล้ว)', data: actualData, backgroundColor: gradActual, borderRadius: 999, borderSkipped: false, barThickness: 12, stack: 'quotaStack' },
+          { label: 'คงเหลือ (รับได้อีก)', data: availableData, backgroundColor: gradAvailable, borderRadius: 999, borderSkipped: false, barThickness: 12, stack: 'quotaStack' },
+          { label: 'ส่วนต่าง / เกิน', data: overData, backgroundColor: gradOver, borderRadius: 999, borderSkipped: false, barThickness: 12, stack: 'quotaStack' }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: { top: 8, right: 16, bottom: 4, left: 4 }
+        },
+        onHover: (event, elements) => {
+          if (event.native && event.native.target) {
+            event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          }
+        },
+        animation: animateChart ? { duration: 750, easing: 'easeOutQuart' } : false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.94)',
+            cornerRadius: 12,
+            padding: 12,
+            titleFont: { family: 'Kanit', size: 13, weight: 'bold' },
+            bodyFont: { family: 'Kanit', size: 12 },
+            callbacks: {
+              afterBody: function(context) {
+                const idx = context[0].dataIndex;
+                const item = list[idx];
+                return `\n📌 โควต้าอนุมัติทั้งหมด: ${item.approved} คน\n✅ เกิดจริง: ${item.actual} คน\n${item.remaining < 0 ? '⚠️ ส่วนต่าง: ' + item.remaining : '🟢 คงเหลือ: ' + item.remaining} คน`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            beginAtZero: true,
+            border: { display: false, dash: [4, 4] },
+            grid: { color: 'rgba(203, 213, 225, 0.45)', tickLength: 0 },
+            ticks: { stepSize: 1, font: { family: 'Kanit', size: 11, weight: '600' }, color: '#94a3b8', padding: 8 }
+          },
+          y: {
+            stacked: true,
+            border: { display: false },
+            grid: { display: false },
+            ticks: { autoSkip: false, font: { family: 'Kanit', size: 12, weight: '600' }, color: '#334155', padding: 12 }
+          }
+        }
+      }
+    });
   }
 </script>
 </body>

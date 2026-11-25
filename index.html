@@ -409,19 +409,19 @@
 
   <!-- Header Component -->
   <div class="relative z-10 max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto mt-4 px-4 lg:px-8">
-    <div class="glass-header rounded-3xl p-5 sm:p-6 flex flex-row items-center justify-between gap-4">
+    <div class="glass-header rounded-3xl p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
       
-      <div class="flex items-center gap-3.5 sm:gap-5 min-w-0">
+      <div class="flex items-center gap-3.5 sm:gap-5 min-w-0 w-full sm:w-auto">
         <div class="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-blue-500 text-white flex items-center justify-center shadow-lg shadow-brand-500/25 flex-shrink-0">
           <i class="fa-solid fa-graduation-cap text-2xl sm:text-3xl"></i>
         </div>
-        <div class="truncate">
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-700 via-brand-500 to-blue-800 dark:from-brand-300 dark:to-blue-300 tracking-tight" id="pageTitle">แบบฟอร์มขอฝึกงาน</h1>
+        <div class="min-w-0 flex-1">
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-700 via-brand-500 to-blue-800 dark:from-brand-300 dark:to-blue-300 tracking-tight leading-snug" id="pageTitle">แบบฟอร์มขอฝึกงาน</h1>
           <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium truncate" id="pageSubtitle">Mitr Phol Group · Internship Application</p>
         </div>
       </div>
       
-      <div class="flex flex-row items-center gap-2.5 sm:gap-3 flex-shrink-0">
+      <div class="flex flex-row items-center justify-end gap-2.5 sm:gap-3 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t border-white/45 dark:border-slate-700/50 sm:border-t-0">
         <div>
           <button id="themeToggle" type="button" title="สลับโหมดสว่าง/มืด" aria-label="สลับโหมดสว่าง/มืด" class="glass-theme-btn w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-amber-400 active:scale-95">
             <i class="fa-solid fa-moon dark:hidden text-sm sm:text-base"></i>
@@ -694,16 +694,22 @@
 
         <div>
           <label class="block text-sm font-semibold mb-2">🖼️ 19. รูป Profile (ภาพถ่ายนักศึกษา) <span class="text-red-500">*</span></label>
-          <div class="flex items-center gap-5 p-4 bg-gray-50/80 dark:bg-gray-700/40 border border-gray-200/80 dark:border-gray-700 rounded-2xl">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 bg-gray-50/80 dark:bg-gray-700/40 border border-gray-200/80 dark:border-gray-700 rounded-2xl">
             <div class="relative w-20 h-20 rounded-2xl overflow-hidden bg-white dark:bg-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center flex-shrink-0 shadow-inner">
               <i id="profilePlaceholderIcon" class="fa-solid fa-user-astronaut text-3xl text-gray-300 dark:text-gray-500"></i>
               <img id="profilePreviewImg" class="w-full h-full object-cover hidden">
             </div>
-            <div class="space-y-2">
+            <div class="space-y-2 flex-1 min-w-0">
               <input type="file" id="fileInput-Profile" accept="image/*" class="hidden" onchange="handleProfileUpload(this)">
-              <button type="button" onclick="document.getElementById('fileInput-Profile').click()" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
-                <i class="fa-solid fa-camera mr-1 text-brand-500"></i> ถ่ายรูป / เลือกรูปภาพ
-              </button>
+              <input type="file" id="fileInput-ProfileCapture" accept="image/*" capture="user" class="hidden" onchange="handleProfileUpload(this)">
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="openProfileCameraModal()" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
+                  <i class="fa-solid fa-camera mr-1.5 text-brand-500"></i> ถ่ายรูปจากกล้อง
+                </button>
+                <button type="button" onclick="document.getElementById('fileInput-Profile').click()" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm hover:scale-105 active:scale-95">
+                  <i class="fa-solid fa-image mr-1.5 text-indigo-500"></i> เลือกรูปภาพ
+                </button>
+              </div>
               <button type="button" id="delBtn-Profile" onclick="removeProfileImage()" class="px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition hidden block">
                 <i class="fa-solid fa-trash-can mr-1"></i> ลบรูปภาพ
               </button>
@@ -762,6 +768,61 @@
           <span id="submitText" class="relative z-10">ยืนยันส่งข้อมูล</span>
           <i id="submitSpinner" class="fa-solid fa-spinner fa-spin hidden relative z-10"></i>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE CAMERA MODAL -->
+  <div id="cameraModal" onclick="if (event.target === this) closeProfileCameraModal();" class="fixed inset-0 bg-slate-950/65 backdrop-blur-md z-[65] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="preview-glass-shell rounded-[26px] w-full max-w-md overflow-hidden border border-white/75 dark:border-slate-700/80 transform scale-95 transition-all duration-300 modal-card">
+      <div class="px-5 py-3.5 bg-gradient-to-r from-sky-500 via-brand-600 to-indigo-600 text-white flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center">
+            <i class="fa-solid fa-camera text-sm"></i>
+          </span>
+          <div>
+            <h3 class="font-bold text-sm sm:text-base leading-tight">ถ่ายรูปโปรไฟล์</h3>
+            <p class="text-[11px] text-sky-100/90">จัดตำแหน่งใบหน้าให้อยู่ในกรอบแล้วกดถ่ายภาพ</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeProfileCameraModal()" aria-label="ปิดกล้อง" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 flex items-center justify-center transition-all duration-200 hover:rotate-90 active:scale-90">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <div class="p-4 space-y-3.5">
+        <div class="relative rounded-2xl overflow-hidden bg-slate-900 aspect-[4/3] w-full flex items-center justify-center border border-slate-700/50 shadow-inner">
+          <video id="cameraVideoPreview" autoplay playsinline muted class="w-full h-full object-cover"></video>
+          <canvas id="cameraCaptureCanvas" class="hidden"></canvas>
+          <div id="cameraLoadingBox" class="absolute inset-0 flex flex-col items-center justify-center text-white/80 text-xs gap-2 bg-slate-900/85">
+            <i class="fa-solid fa-spinner fa-spin text-xl text-sky-400"></i>
+            <span>กำลังเปิดกล้อง...</span>
+          </div>
+          <div id="cameraErrorBox" class="hidden absolute inset-0 p-5 flex flex-col items-center justify-center text-center text-white bg-slate-900/95 space-y-3">
+            <div class="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-400/40 text-rose-300 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-video-slash"></i>
+            </div>
+            <p id="cameraErrorText" class="text-xs text-slate-200 leading-relaxed">ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้กล้องหรือเลือกรูปภาพจากเครื่อง</p>
+            <div class="flex flex-wrap items-center justify-center gap-2">
+              <button type="button" onclick="closeProfileCameraModal(); document.getElementById('fileInput-ProfileCapture').click();" class="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition">
+                <i class="fa-solid fa-camera mr-1"></i> เปิดกล้องมือถือ
+              </button>
+              <button type="button" onclick="closeProfileCameraModal(); document.getElementById('fileInput-Profile').click();" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition">
+                <i class="fa-solid fa-image mr-1"></i> เลือกรูปจากเครื่อง
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="cameraActionControls" class="flex items-center justify-between gap-2.5">
+          <button type="button" onclick="switchProfileCamera()" class="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-white dark:hover:bg-slate-700 transition flex items-center gap-1.5 active:scale-95">
+            <i class="fa-solid fa-camera-rotate"></i> สลับกล้อง
+          </button>
+          <button id="btnCapturePhoto" type="button" onclick="captureProfilePhoto()" disabled class="flex-1 glass-submit-btn text-white px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-circle-dot relative z-10"></i>
+            <span class="relative z-10">ถ่ายภาพ</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -892,6 +953,10 @@
         const previewModal = document.getElementById('previewModal');
         if (previewModal && !previewModal.classList.contains('pointer-events-none')) {
           closePreviewModal();
+        }
+        const camModal = document.getElementById('cameraModal');
+        if (camModal && !camModal.classList.contains('pointer-events-none')) {
+          closeProfileCameraModal();
         }
       }
     });
@@ -1197,6 +1262,123 @@
       validateAllFields();
     }
 
+    let activeCameraStream = null;
+    let currentCameraFacing = 'user';
+
+    function stopProfileCameraStream() {
+      if (activeCameraStream) {
+        activeCameraStream.getTracks().forEach(t => t.stop());
+        activeCameraStream = null;
+      }
+      const video = document.getElementById('cameraVideoPreview');
+      if (video) video.srcObject = null;
+    }
+
+    async function startProfileCameraStream() {
+      stopProfileCameraStream();
+      const video = document.getElementById('cameraVideoPreview');
+      const loadingBox = document.getElementById('cameraLoadingBox');
+      const errorBox = document.getElementById('cameraErrorBox');
+      const errorText = document.getElementById('cameraErrorText');
+      const btnCapture = document.getElementById('btnCapturePhoto');
+
+      if (loadingBox) loadingBox.classList.remove('hidden');
+      if (errorBox) errorBox.classList.add('hidden');
+      if (btnCapture) btnCapture.disabled = true;
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (loadingBox) loadingBox.classList.add('hidden');
+        if (errorBox) errorBox.classList.remove('hidden');
+        if (errorText) errorText.innerText = 'เบราว์เซอร์นี้ไม่รองรับการเปิดกล้องโดยตรง กรุณาใช้ปุ่มด้านล่างเพื่อเปิดกล้องมือถือหรือเลือกรูปภาพ';
+        return;
+      }
+
+      try {
+        try {
+          activeCameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentCameraFacing, width: { ideal: 1280 }, height: { ideal: 960 } },
+            audio: false
+          });
+        } catch (firstErr) {
+          activeCameraStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+        }
+
+        if (video) {
+          video.srcObject = activeCameraStream;
+          video.style.transform = currentCameraFacing === 'user' ? 'scaleX(-1)' : 'none';
+          await video.play().catch(() => {});
+        }
+        if (loadingBox) loadingBox.classList.add('hidden');
+        if (btnCapture) btnCapture.disabled = false;
+      } catch (err) {
+        if (loadingBox) loadingBox.classList.add('hidden');
+        if (errorBox) errorBox.classList.remove('hidden');
+        if (errorText) {
+          errorText.innerText = 'ไม่สามารถเปิดกล้องได้ (' + (err.name === 'NotAllowedError' ? 'ยังไม่ได้รับอนุญาตให้ใช้กล้อง' : (err.message || 'ไม่พบอุปกรณ์กล้อง')) + ')';
+        }
+      }
+    }
+
+    function openProfileCameraModal() {
+      const modal = document.getElementById('cameraModal');
+      if (!modal) {
+        document.getElementById('fileInput-ProfileCapture').click();
+        return;
+      }
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      const card = modal.querySelector('.modal-card');
+      if (card) {
+        card.classList.remove('scale-95');
+        card.classList.add('scale-100');
+      }
+      startProfileCameraStream();
+    }
+
+    function closeProfileCameraModal() {
+      stopProfileCameraStream();
+      const modal = document.getElementById('cameraModal');
+      if (!modal) return;
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      const card = modal.querySelector('.modal-card');
+      if (card) {
+        card.classList.remove('scale-100');
+        card.classList.add('scale-95');
+      }
+    }
+
+    function switchProfileCamera() {
+      currentCameraFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
+      startProfileCameraStream();
+    }
+
+    function captureProfilePhoto() {
+      const video = document.getElementById('cameraVideoPreview');
+      const canvas = document.getElementById('cameraCaptureCanvas');
+      if (!video || !canvas || !video.videoWidth) return;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (currentCameraFacing === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      const fileName = `camera_profile_${Date.now()}.jpg`;
+      profileImageData = { name: fileName, base64: dataUrl };
+      document.getElementById('profilePreviewImg').src = dataUrl;
+      document.getElementById('profilePreviewImg').classList.remove('hidden');
+      document.getElementById('profilePlaceholderIcon').classList.add('hidden');
+      document.getElementById('delBtn-Profile').classList.remove('hidden');
+      validateAllFields();
+      closeProfileCameraModal();
+    }
+
     function handleProfileUpload(input) {
       if (!input.files[0]) return;
       const r = new FileReader();
@@ -1214,6 +1396,8 @@
     function removeProfileImage() {
       profileImageData = null;
       document.getElementById('fileInput-Profile').value = '';
+      const capInput = document.getElementById('fileInput-ProfileCapture');
+      if (capInput) capInput.value = '';
       document.getElementById('profilePreviewImg').classList.add('hidden');
       document.getElementById('profilePlaceholderIcon').classList.remove('hidden');
       document.getElementById('delBtn-Profile').classList.add('hidden');

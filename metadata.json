@@ -1,5 +1,5 @@
 {
   "name": "ระบบขอฝึกงาน - กลุ่มมิตรผล",
   "description": "Mitr Phol Group Internship Application & Management System",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera"]
 }
