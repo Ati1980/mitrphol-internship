@@ -428,7 +428,7 @@
     if (!forceFresh) {
       try {
         const cachedQuota = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-        if (cachedQuota) applyQuotaUI(cachedQuota);
+        if (cachedQuota && cachedQuota.rejectedExcluded) applyQuotaUI(cachedQuota);
       } catch (e) {}
     }
 

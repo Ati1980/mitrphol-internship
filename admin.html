@@ -800,6 +800,41 @@
   let currentPage = 1;
   const PAGE_SIZE = 20;
   let emailSentRows = {};
+  const INVALIDATED_EMAIL_STORAGE_KEY = 'mitrpholInvalidatedEmailMap';
+
+  function getInvalidatedEmailMap() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(INVALIDATED_EMAIL_STORAGE_KEY) || '{}');
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveInvalidatedEmailMap(map) {
+    try {
+      localStorage.setItem(INVALIDATED_EMAIL_STORAGE_KEY, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function isItemEmailSent(item) {
+    if (!item) return false;
+    const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+    const isApproved = (s === 'reviewed' || s === 'approved' || s === 'อนุมัติแล้ว');
+    const isRejected = (s === 'rejected' || s === 'ไม่อนุมัติ');
+    if (!isApproved && !isRejected) return false;
+
+    const rawEmailStatus = String(item.emailSentStatus || '').trim();
+    const invMap = getInvalidatedEmailMap();
+    const invVal = invMap[String(item.sheetRow)];
+    const isStaleFromReset = Boolean(
+      invVal && (invVal === '__RESET__' || (rawEmailStatus && rawEmailStatus === invVal))
+    );
+
+    if (emailSentRows[item.sheetRow]) return true;
+    if (isStaleFromReset) return false;
+    return Boolean(rawEmailStatus && rawEmailStatus.includes('ส่งแล้ว'));
+  }
 
   document.addEventListener('DOMContentLoaded', function() {
     try {
@@ -869,6 +904,28 @@
 
   function renderAdminData(data) {
     adminDataList = Array.isArray(data) ? data : [];
+
+    // If an application is currently unassigned/pending but still carries an old "ส่งแล้ว" string
+    // from before it was cancelled/reset, record it as stale so "ส่ง Email" works again once re-approved.
+    const invMap = getInvalidatedEmailMap();
+    let invChanged = false;
+    adminDataList.forEach(item => {
+      const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+      const isApproved = (s === 'reviewed' || s === 'approved' || s === 'อนุมัติแล้ว');
+      const isRejected = (s === 'rejected' || s === 'ไม่อนุมัติ');
+      const rawEmail = String(item.emailSentStatus || '').trim();
+      if (!isApproved && !isRejected) {
+        if (emailSentRows[item.sheetRow]) {
+          delete emailSentRows[item.sheetRow];
+        }
+        if (rawEmail && rawEmail.includes('ส่งแล้ว') && invMap[String(item.sheetRow)] !== rawEmail) {
+          invMap[String(item.sheetRow)] = rawEmail;
+          invChanged = true;
+        }
+      }
+    });
+    if (invChanged) saveInvalidatedEmailMap(invMap);
+
     populateFiltersDropdown();
     updateSummaryCards();
     filterAdminTable();
@@ -1035,16 +1092,18 @@
       }
 
       const approverName = item.approverDisplayName || item.reviewerUsername || '-';
-      const isSent = Boolean(emailSentRows[item.sheetRow] || (item.emailSentStatus && item.emailSentStatus.includes('ส่งแล้ว')));
+      const isSent = isItemEmailSent(item);
 
       let emailBtn = '';
-      if (isSent) {
-        emailBtn = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm" style="background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4;"><i class="fa-solid fa-check-double"></i>ส่งแล้ว</span>`;
-      } else if (isApproved || isRejected) {
-        emailBtn = `
-          <button id="btnEmail_${item.sheetRow}" onclick="handleSendEmail(${item.sheetRow}, '${item.fullName}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white font-bold text-xs shadow-sm hover:opacity-95 transition whitespace-nowrap" style="background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);">
-            <i class="fa-solid fa-paper-plane"></i>ส่ง Email
-          </button>`;
+      if (isApproved || isRejected) {
+        if (isSent) {
+          emailBtn = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm" style="background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4;"><i class="fa-solid fa-check-double"></i>ส่งแล้ว</span>`;
+        } else {
+          emailBtn = `
+            <button id="btnEmail_${item.sheetRow}" onclick="handleSendEmail(${item.sheetRow}, '${item.fullName}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white font-bold text-xs shadow-sm hover:opacity-95 transition whitespace-nowrap" style="background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);">
+              <i class="fa-solid fa-paper-plane"></i>ส่ง Email
+            </button>`;
+        }
       } else {
         emailBtn = `<span class="text-xs text-gray-400 font-medium">-</span>`;
       }
@@ -1118,7 +1177,9 @@
     };
 
     const rows = list.map((item, idx) => {
-      const isSent = Boolean(emailSentRows[item.sheetRow] || (item.emailSentStatus && item.emailSentStatus.includes('ส่งแล้ว')));
+      const s = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+      const isApprovedOrRejected = ['reviewed', 'approved', 'อนุมัติแล้ว', 'rejected', 'ไม่อนุมัติ'].includes(s);
+      const isSent = isItemEmailSent(item);
       const phoneStr = formatThaiPhone(item.phone);
       const emerPhoneStr = formatThaiPhone(item.emergencyPhone);
       return {
@@ -1134,7 +1195,7 @@
         'แผนก': (item.selectedSection && item.selectedSection !== '-') ? item.selectedSection : '-',
         'สถานะ': getThaiStatusLabel(item.reviewStatus || item.status),
         'ผู้อนุมัติ (ผู้พิจารณา)': item.approverDisplayName || item.reviewerUsername || '-',
-        'สถานะส่งอีเมล': isSent ? 'ส่งแล้ว' : (item.emailSentStatus || '-'),
+        'สถานะส่งอีเมล': isApprovedOrRejected ? (isSent ? 'ส่งแล้ว' : '-') : '-',
         'วันเริ่มฝึกงาน': item.startDate || '-',
         'วันสิ้นสุดฝึกงาน': item.endDate || '-',
         'อีเมลนักศึกษา': item.emailStudent || '-',
@@ -1217,12 +1278,23 @@
     if (!confirm('ยืนยันการ "ยกเลิกการอนุมัติ" ของรายการนี้ใช่หรือไม่?\nระบบจะรีเซ็ตสถานะกลับเป็น นศ.ฝึกงานใหม่ (ยังไม่มีผู้รับเรื่อง)')) return;
 
     try {
+      const targetItem = adminDataList.find(x => x.sheetRow === sheetRow);
+      const prevEmailStatus = (targetItem && targetItem.emailSentStatus) ? String(targetItem.emailSentStatus).trim() : '';
+
       const res = await callGasPost('adminreset', {
         rowId: sheetRow,
         adminUsername: currentAdmin.username || 'Admin'
       });
 
       if (res && res.success) {
+        const invMap = getInvalidatedEmailMap();
+        invMap[String(sheetRow)] = prevEmailStatus || '__RESET__';
+        saveInvalidatedEmailMap(invMap);
+        delete emailSentRows[sheetRow];
+        try {
+          sessionStorage.removeItem('mitrpholAdminAppsCache');
+          sessionStorage.removeItem('mitrpholAllQuotaCache');
+        } catch (e) {}
         alert(res.message);
         loadAdminData(true);
       } else {
@@ -1314,6 +1386,14 @@
       if (res && res.success) {
         alert(res.message);
         emailSentRows[sheetRow] = true;
+        const invMap = getInvalidatedEmailMap();
+        if (invMap[String(sheetRow)]) {
+          delete invMap[String(sheetRow)];
+          saveInvalidatedEmailMap(invMap);
+        }
+        const targetItem = adminDataList.find(x => x.sheetRow === sheetRow);
+        if (targetItem) targetItem.emailSentStatus = 'ส่งแล้ว';
+        try { sessionStorage.removeItem('mitrpholAdminAppsCache'); } catch (e) {}
         filterAdminTable();
       } else {
         alert((res && res.message) || 'เกิดข้อผิดพลาดในการส่งอีเมล');
@@ -1441,7 +1521,7 @@
     if (!forceFresh) {
       try {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-        if (cached && cached.success) {
+        if (cached && cached.success && cached.rejectedExcluded) {
           hasCached = true;
           renderQuotaOverview(cached);
         }
@@ -1457,7 +1537,43 @@
     }
 
     try {
-      const res = await callGasGet('getallquota', {}, { fresh: forceFresh });
+      let res = await callGasGet('getallquota', {}, { fresh: forceFresh });
+      if (res && res.success && !res.rejectedExcluded && Array.isArray(res.data)) {
+        // Fallback exclusion if direct GAS was used instead of /api/gas proxy
+        try {
+          const apps = adminDataList.length ? adminDataList : await callGasGet('getapplications', { username: '', role: 'admin' });
+          const rejectedWithSection = (Array.isArray(apps) ? apps : []).filter(item => {
+            const st = String(item.reviewStatus || item.status || '').toLowerCase().trim();
+            const sec = String(item.selectedSection || '').trim();
+            return (st === 'rejected' || st === 'ไม่อนุมัติ') && sec && sec !== '-';
+          });
+          if (rejectedWithSection.length) {
+            const reviewers = Array.from(new Set(rejectedWithSection.map(x => String(x.reviewerUsername || '').trim()).filter(u => u && u !== '-')));
+            const revAffMap = {};
+            await Promise.all(reviewers.map(async (u) => {
+              try {
+                const uq = await callGasGet('getuserquota', { username: u });
+                if (uq && uq.affiliation) revAffMap[u.toLowerCase()] = String(uq.affiliation).trim();
+              } catch (e) {}
+            }));
+            const deductMap = {};
+            rejectedWithSection.forEach(item => {
+              const aff = (item.affiliation && String(item.affiliation).trim()) || revAffMap[String(item.reviewerUsername || '').trim().toLowerCase()] || '';
+              if (aff) deductMap[aff] = (deductMap[aff] || 0) + 1;
+            });
+            res.data = res.data.map(row => {
+              const d = deductMap[String(row.affiliation || '').trim()] || 0;
+              const actual = Math.max(0, (Number(row.actual) || 0) - d);
+              const approved = Number(row.approved) || 0;
+              return { ...row, actual, remaining: approved - actual };
+            });
+            const totApp = res.data.reduce((s, r) => s + (Number(r.approved) || 0), 0);
+            const totAct = res.data.reduce((s, r) => s + (Number(r.actual) || 0), 0);
+            res.totals = { approved: totApp, actual: totAct, remaining: totApp - totAct };
+            res.rejectedExcluded = true;
+          }
+        } catch (e) {}
+      }
       if (res && res.success) {
         try { sessionStorage.setItem(cacheKey, JSON.stringify(res)); } catch (e) {}
       }
